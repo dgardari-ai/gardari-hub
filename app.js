@@ -674,7 +674,7 @@ SOFTWARE.
       const titleBox = title.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
       const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
       rule.style.left = (headingBox.left - titleBox.left) + 'px';
-      rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - .5) + 'px';
+      rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - rule.getBoundingClientRect().height / 2) + 'px';
       // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
       rule.style.width = Math.max(0, document.documentElement.clientWidth - headingBox.left) + 'px';
       rule.style.visibility = 'visible';
@@ -682,6 +682,9 @@ SOFTWARE.
     function schedule() {
       if (!destroyed && frame === null) frame = requestAnimationFrame(measure);
     }
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
+    observer?.observe(heading);
+    observer?.observe(rule);
     window.addEventListener('resize', schedule, {passive:true});
     reducedMotion.addEventListener('change', schedule);
     if (document.fonts?.status !== 'loaded') document.fonts?.ready.then(schedule);
@@ -689,6 +692,7 @@ SOFTWARE.
     return () => {
       destroyed = true;
       if (frame !== null) cancelAnimationFrame(frame);
+      observer?.disconnect();
       window.removeEventListener('resize', schedule);
       reducedMotion.removeEventListener('change', schedule);
     };
@@ -709,7 +713,7 @@ SOFTWARE.
         '<div class="panel-visual-title">' +
           '<div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span>' + escapeHtml(item.category) + '</span></div>' +
           '<h2>' + heading + '</h2>' +
-          '<span class="panel-heading-rule" aria-hidden="true"></span>' +
+          '<span class="panel-heading-rule hub-line" data-hub-line="heading" data-hub-line-label="Линия под названием" data-hub-line-scope="direction" aria-hidden="true"></span>' +
           '<span class="panel-info-eyebrow">' + escapeHtml(item.subtitle) + '</span></div>' +
       '</div>';
     const more = item.more ? item.more.map(paragraph => '<p>' + escapeHtml(paragraph) + '</p>').join('') : '';

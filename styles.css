@@ -366,4 +366,5 @@ p { text-wrap: pretty; }
 
 /* Title hairline: no flow space, anchored to the last line descender. */
 .panel-visual-title { position: relative; }
-.panel-heading-rule { position: absolute; display: block; height: 1px; background: #000; pointer-events: none; visibility: hidden; }
+.hub-line { display: block; height: 1px; background: #000; pointer-events: none; }
+.panel-heading-rule { position: absolute; visibility: hidden; }
