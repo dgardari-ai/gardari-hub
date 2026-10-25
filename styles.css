@@ -86,12 +86,14 @@ p { text-wrap: pretty; }
   background: transparent; touch-action: manipulation;
   font: 400 11px/1.26 var(--label-font); letter-spacing: .008em;
 }
-.wheel-node-number { display: block; font: 400 10px/1.2 var(--label-font); color: var(--body); }
-.wheel-node-name { display: block; font: 400 11px/1.25 var(--label-font); text-transform: uppercase; letter-spacing: .008em; transform: scale(var(--orbit-label-scale, 1)); transition: color .18s, transform .18s; }
+.wheel-node-number { display: block; font: 400 10px/1.2 var(--label-font); color: var(--body); transform: scale(var(--top-label-scale, 1)); transition: transform .18s; }
+.wheel-node-name { display: block; font: 400 11px/1.25 var(--label-font); text-transform: uppercase; letter-spacing: .008em; transform: scale(max(var(--orbit-label-scale, 1), var(--top-label-scale, 1))); transition: color .18s, transform .18s; }
 .wheel-node-name-line { display: block; white-space: nowrap; }
-.wheel-node:hover .wheel-node-name, .wheel-node:focus-visible .wheel-node-name { transform: scale(max(1.12, var(--orbit-label-scale, 1))); color: var(--blue-deep); }
+.wheel-node:hover .wheel-node-name, .wheel-node:focus-visible .wheel-node-name { transform: scale(max(1.12, var(--orbit-label-scale, 1), var(--top-label-scale, 1))); color: var(--blue-deep); }
 .wheel-node[aria-pressed="true"] .wheel-node-name { font-weight: 500; }
 .wheel-node[aria-pressed="true"] .wheel-node-number { color: var(--ink); }
+.wheel-node.is-top { --top-label-scale: 1.07; }
+.wheel-node.is-top .wheel-node-name, .wheel-node.is-top .wheel-node-number { font-weight: 700; }
 
 /* Три круга задают композицию: навигация, изображение, действие. */
 .direction-panel { --panel-right-air: calc(var(--hub-side-gutter) * .3); padding-right: var(--panel-right-air); min-width: 0; align-self: start; padding-top: clamp(14px, 3.5vh, 39px); transition: opacity .16s ease, transform .16s ease; }
@@ -106,6 +108,9 @@ p { text-wrap: pretty; }
 .panel-info-eyebrow { display: block; align-self: start; margin-top: clamp(15px, 1.5vw, 23px); font: 400 10px/1.55 var(--label-font); color: var(--body); }
 .panel-visual-title h2 { width: 100%; align-self: center; margin: 0; padding: 0; text-indent: 0; font-size: clamp(47.3px, 4.015vw, 74.8px); line-height: .86; hyphens: none; overflow-wrap: normal; text-transform: lowercase; -webkit-text-stroke: 1.5px currentColor; }
 .panel-heading-line { display: block; white-space: nowrap; }
+.panel-visual-title .panel-heading-line,
+.panel-visual-title .panel-context,
+.panel-visual-title .panel-info-eyebrow { transform: translateX(var(--heading-optical-shift, 0px)); }
 .panel-description { min-height: 325px; margin-top: clamp(36px, 5vh, 66px); }
 .panel-description-copy { display: flex; flex-direction: column; gap: 0; }
 .panel-description p { max-width: calc(680px - var(--panel-right-air)); color: var(--body); }

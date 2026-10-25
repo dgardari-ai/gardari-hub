@@ -49,17 +49,21 @@ SOFTWARE.
   const aboutStart = document.getElementById("about-path");
   const center = { x: 300, y: 300 };
   const orbitRadius = 181;
-  const nodeAngles = directions.map((_, i) => -Math.PI / 2 + i * 2 * Math.PI / directions.length);
+  const fullCircle = 2 * Math.PI;
+  const nodeAngles = directions.map((_, i) => -Math.PI / 2 + i * fullCircle / directions.length);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let chosen = directions.findIndex(item => item.number === "0.1");
-  let renderTimer = null;
+  let panelScrollTimer = null;
   let progress = 0;
   let lastTime = null;
   let frameId = null;
   let wheelVisible = true;
   const period = 29000;
+  let navigationOffset = -Math.max(0, chosen) * fullCircle / directions.length;
+  let navigationTurn = null;
   const dots = [];
   const dotTargets = [];
+  const hitAreas = [];
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, strength: 0, active: false };
   let particleStride = 1;
   let nextWordAt = Infinity;
@@ -190,7 +194,8 @@ SOFTWARE.
 
   function updateOrbitLabelEmphasis() {
     orbitLabelNodes.forEach((name, i) => {
-      const offset = Math.abs(progress - i / directions.length);
+      const nodeProgress = ((i / directions.length + navigationOffset / fullCircle) % 1 + 1) % 1;
+      const offset = Math.abs(progress - nodeProgress);
       const distance = Math.min(offset, 1 - offset);
       const strength = reducedMotion.matches ? 0 : 1 - smoothstep(distance / orbitLabelHalfWindow);
       const scale = (1 + .16 * strength).toFixed(4);
@@ -200,21 +205,100 @@ SOFTWARE.
     });
   }
 
+  // Координаты движутся по общей окружности; сами подписи не поворачиваются.
+  function drawNavigationPositions() {
+    buttons.forEach((button, i) => {
+      const angle = nodeAngles[i] + navigationOffset;
+      const point = polar(angle, orbitRadius);
+      button.style.left = (50 + Math.cos(angle) * 40.7) + "%";
+      button.style.top = (50 + Math.sin(angle) * 40.7) + "%";
+      for (const circle of [dots[i], hitAreas[i]]) {
+        circle.setAttribute("cx", point.x);
+        circle.setAttribute("cy", point.y);
+      }
+    });
+  }
+
+  function navigationDestination(from, index, count = directions.length) {
+    const base = -index * fullCircle / count;
+    const delta = ((base - from + Math.PI) % fullCircle + fullCircle) % fullCircle - Math.PI;
+    // Floating-point remnants at the top must not become an extra full turn.
+    return Math.abs(delta) < 1e-7 ? from : from + delta;
+  }
+
+  function settleNavigationTurn() {
+    if (!navigationTurn) return;
+    const turn = navigationTurn;
+    navigationOffset = turn.to;
+    navigationTurn = null;
+    drawNavigationPositions();
+    buttons.forEach((button, i) => button.classList.toggle("is-top", i === turn.index));
+    wheel.dataset.turnState = "idle";
+    wheel.dataset.topDirection = directions[turn.index].number;
+    updateOrbitLabelEmphasis();
+    window.dispatchEvent(new CustomEvent("hub:navigation-settled", {
+      detail: { number: directions[turn.index].number }
+    }));
+  }
+
+  function updateNavigationTurn(time) {
+    if (!navigationTurn) return;
+    if (reducedMotion.matches || !wheelVisible || document.hidden) {
+      settleNavigationTurn();
+      return;
+    }
+    if (navigationTurn.startedAt === null) navigationTurn.startedAt = time;
+    const elapsed = Math.max(0, time - navigationTurn.startedAt);
+    if (elapsed >= navigationTurn.duration) {
+      settleNavigationTurn();
+      return;
+    }
+    navigationOffset = navigationTurn.from + (navigationTurn.to - navigationTurn.from) *
+      smoothstep(elapsed / navigationTurn.duration);
+    drawNavigationPositions();
+  }
+
+  function turnNavigationTo(index, immediate = false) {
+    const instant = immediate || reducedMotion.matches || !wheelVisible || document.hidden;
+    if (navigationTurn?.index === index) {
+      if (instant) settleNavigationTurn();
+      return;
+    }
+    // Retarget from the last drawn angle, never from the previous destination.
+    const destination = navigationDestination(navigationOffset, index);
+    navigationTurn = {
+      from: navigationOffset, to: destination, index, startedAt: null,
+      duration: 1250 + 650 * Math.abs(navigationOffset - destination) / fullCircle
+    };
+    if (instant || destination === navigationOffset) {
+      settleNavigationTurn();
+      return;
+    }
+    buttons.forEach(button => button.classList.remove("is-top"));
+    wheel.dataset.turnState = "turning";
+    delete wheel.dataset.topDirection;
+    window.dispatchEvent(new CustomEvent("hub:navigation-started", {
+      detail: { number: directions[index].number }
+    }));
+    beginOrbit();
+  }
+
   directions.forEach((item, i) => {
-    const angle = nodeAngles[i];
+    const angle = nodeAngles[i] + navigationOffset;
     const point = polar(angle, orbitRadius);
     const target = svg("g", {
       "class": "wheel-dot-target", "role": "button", "tabindex": "0",
       "aria-label": item.number + " " + item.title,
       "aria-pressed": String(i === chosen)
     }, dotsGroup);
-    svg("circle", { cx: point.x, cy: point.y, r: 18, "class": "wheel-dot-hitarea" }, target);
+    const hitArea = svg("circle", { cx: point.x, cy: point.y, r: 18, "class": "wheel-dot-hitarea" }, target);
     const dot = svg("circle", {
       cx: point.x, cy: point.y, r: 4.5,
       "class": "wheel-dot" + (i === chosen ? " is-selected" : "")
     }, target);
     dots.push(dot);
     dotTargets.push(target);
+    hitAreas.push(hitArea);
     target.addEventListener("click", () => select(i));
     target.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") {
@@ -537,6 +621,40 @@ SOFTWARE.
     };
   }
 
+  // Align the visible first glyph, not its font's invisible side bearing.
+  function alignOpticalLeft(element, axis, context) {
+    if (!element) return;
+    // Always measure the native position; previous corrections must not accumulate.
+    element.style.setProperty('--heading-optical-shift', '0px');
+    if (!context) return;
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let textNode = null, offset = -1, candidate;
+    while ((candidate = walker.nextNode())) {
+      offset = candidate.textContent.search(/\S/u);
+      if (offset !== -1) {textNode = candidate;break;}
+    }
+    if (!textNode) return;
+    const glyph = Array.from(textNode.textContent.slice(offset))[0];
+    const style = getComputedStyle(textNode.parentElement || element);
+    let visibleGlyph = glyph;
+    if (style.textTransform === 'lowercase') visibleGlyph = glyph.toLocaleLowerCase('ru');
+    else if (style.textTransform === 'uppercase') visibleGlyph = glyph.toLocaleUpperCase('ru');
+    context.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+    const metrics = context.measureText(visibleGlyph);
+    if (!Number.isFinite(metrics.actualBoundingBoxLeft)) return;
+    const range = document.createRange();
+    range.setStart(textNode, offset);range.setEnd(textNode, offset + glyph.length);
+    const origin = range.getBoundingClientRect().left;
+    const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
+    const shift = axis - origin + metrics.actualBoundingBoxLeft + stroke / 2;
+    element.style.setProperty('--heading-optical-shift', shift + 'px');
+  }
+
+  function alignHeadingLines(heading, lines, context) {
+    const axis = heading.getBoundingClientRect().left;
+    lines.forEach(line => alignOpticalLeft(line, axis, context));
+  }
+
   // Paper-fold entrance and cursor refold, adapted for the existing two-line type.
   // React Bits FoldText: https://reactbits.dev/text-animations/fold-text
   // Native glyph advances are measured before splitting, preserving kerning.
@@ -545,6 +663,7 @@ SOFTWARE.
     if (!heading) return () => {};
     const lines = Array.from(heading.querySelectorAll('.panel-heading-line'));
     const texts = lines.map(line => line.textContent);
+    const opticalContext = document.createElement('canvas').getContext('2d');
     heading.setAttribute('aria-label', texts.join(' '));
     let pieces = [], frame = null, resizeFrame = null, pointer = null;
     let start = performance.now(), lastFrame = start, entrance = true, destroyed = false;
@@ -586,6 +705,7 @@ SOFTWARE.
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;pieces = [];
       lines.forEach((line, index) => {line.textContent = texts[index];});
+      alignHeadingLines(heading, lines, opticalContext);
       if (reducedMotion.matches) {heading.dataset.foldState = 'still';return;}
       const headingBox = heading.getBoundingClientRect();
       lines.forEach((line, lineIndex) => {
@@ -660,11 +780,7 @@ SOFTWARE.
       if (!line) return;
       const style = getComputedStyle(heading);
       context.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
-      let text = line.textContent;
-      if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase('ru');
-      else if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('ru');
-      const descent = Math.max(context.measureText(text).actualBoundingBoxDescent,
-        context.measureText('р').actualBoundingBoxDescent, 0);
+      const descent = context.measureText('р').actualBoundingBoxDescent || 0;
       const marker = document.createElement('span');
       marker.setAttribute('aria-hidden', 'true');
       marker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
@@ -673,6 +789,8 @@ SOFTWARE.
       marker.remove();
       const titleBox = title.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
       const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
+      alignOpticalLeft(title.querySelector('.panel-context'), headingBox.left, context);
+      alignOpticalLeft(title.querySelector('.panel-info-eyebrow'), headingBox.left, context);
       rule.style.left = (headingBox.left - titleBox.left) + 'px';
       rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - rule.getBoundingClientRect().height / 2) + 'px';
       // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
@@ -763,28 +881,36 @@ SOFTWARE.
     }));
   });
 
-  function select(index, immediate = false) {
+  function select(index, immediate = false, animateNavigation = !immediate) {
     if (!Number.isInteger(index) || index < 0 || index >= directions.length) return;
+    if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
+    panelScrollTimer = null;
     chosen = index;
+    turnNavigationTo(index, !animateNavigation);
     if (directions[index].number !== "0.1") aboutJourney.hidden = true;
     buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
     dots.forEach((dot, i) => dot.classList.toggle("is-selected", i === index));
     dotTargets.forEach((target, i) => target.setAttribute("aria-pressed", String(i === index)));
-    if (renderTimer) window.clearTimeout(renderTimer);
-    if (immediate || reducedMotion.matches) {
-      panel.classList.remove("is-leaving");
-      renderPanel(index);
-    } else {
-      panel.classList.add("is-leaving");
-      renderTimer = window.setTimeout(() => {
-        renderPanel(chosen);
-        panel.classList.remove("is-leaving");
-        renderTimer = null;
-      }, 150);
-    }
+    panel.classList.remove("is-leaving");
+    renderPanel(index);
     // Автоматическая орбита намеренно не сбрасывается и не останавливается.
     if (!immediate && window.innerWidth <= 1130) {
-      window.setTimeout(() => panel.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" }), 190);
+      let delay = 190;
+      if (navigationTurn) {
+        const elapsed = navigationTurn.startedAt === null ? 0 :
+          Math.max(0, (lastTime ?? navigationTurn.startedAt) - navigationTurn.startedAt);
+        delay = Math.max(0, navigationTurn.duration - elapsed) + 60;
+      }
+      function scrollToChosen() {
+        panelScrollTimer = null;
+        if (chosen !== index || window.innerWidth > 1130) return;
+        if (navigationTurn?.index === index) {
+          panelScrollTimer = window.setTimeout(scrollToChosen, 60);
+          return;
+        }
+        panel.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+      }
+      panelScrollTimer = window.setTimeout(scrollToChosen, delay);
     }
   }
   buttons.forEach(button => button.addEventListener("click", () => select(Number(button.dataset.index))));
@@ -809,15 +935,18 @@ SOFTWARE.
       pointer.y += (pointer.targetY - pointer.y) * .065;
       pointer.strength += ((pointer.active ? 1 : 0) - pointer.strength) * .055;
     }
+    updateNavigationTurn(time);
     drawParticleField(time);
     drawOrbit();
     if (wheelVisible && !document.hidden && !reducedMotion.matches) frameId = requestAnimationFrame(animate);
   }
   function beginOrbit() {
+    if (frameId !== null || !wheelVisible || document.hidden || reducedMotion.matches) return;
     lastTime = null;
-    if (frameId === null) frameId = requestAnimationFrame(animate);
+    frameId = requestAnimationFrame(animate);
   }
   function endOrbit() {
+    settleNavigationTurn();
     if (frameId !== null) cancelAnimationFrame(frameId);
     frameId = null;
     lastTime = null;
@@ -845,7 +974,7 @@ SOFTWARE.
   // The source-owned editor bridge uses the same renderer as the public site.
   window.addEventListener("hub:select", event => {
     const index = directions.findIndex(item => item.number === event.detail?.number);
-    select(index, true);
+    select(index, true, event.detail?.animate === true);
   });
   function revealFragment() {
     const id = location.hash.slice(1);
