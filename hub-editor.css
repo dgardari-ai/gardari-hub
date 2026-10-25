@@ -1,0 +1,17 @@
+/* Source-owned visual overrides. Empty preserves the accepted 1.0 design. */
+@media(max-width:360px){.panel-visual-title{height:auto;min-height:var(--paired-photo);grid-template-rows:auto auto auto}}
+#direction-panel[data-direction="0.1"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.1"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.2"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.3"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.4"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.5"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.6"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.7"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
+#direction-panel[data-direction="0.2"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.3"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.4"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.5"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.6"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+#direction-panel[data-direction="0.7"] .panel-description-lead{font-size:21px !important;line-height:24px !important}
+@media(max-width:700px){#direction-panel[data-direction="0.6"] .panel-visual-row{padding-bottom:16px !important}}
