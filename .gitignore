@@ -1,0 +1,10 @@
+# Internal working agreements, not part of the public website
+AGENTS.md
+ПЗ.md
+ПАСПОРТ.md
+.vmg/
+.vmg-editor/
+.DS_Store
+.env*
+*.log
+__pycache__/
