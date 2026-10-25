@@ -109,7 +109,7 @@ p { text-wrap: pretty; }
 .panel-description p { max-width: 680px; color: var(--body); }
 .panel-description-lead { font-size: clamp(15px, 1.24vw, 18px); line-height: 1.4; margin-bottom: .4em; }
 .panel-description p.panel-description-lead { color: #000; }
-.panel-description-rule { width: min(100%, 640px); height: 1px; margin-bottom: clamp(13px, 1.42vw, 19px); background: #d8dbde; }
+.panel-description-rule { height: 0; margin-bottom: clamp(13px, 1.42vw, 19px); background: none; }
 .panel-description-support { display: flex; flex-direction: column; gap: clamp(8px, .87vw, 12px); }
 .panel-description-support p { font-size: clamp(13px, 1.06vw, 16px); line-height: 1.344; }
 .panel-cta { display: flex; justify-content: center; align-items: center; width: 66.6667%; aspect-ratio: 1; padding: 8px; border: 1px solid var(--ink); border-radius: 50%; background: var(--accent); transform: translate(-75%, 75%); transition: transform .18s var(--ease), background .18s; }
@@ -347,3 +347,18 @@ p { text-wrap: pretty; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .wheel-orbiter-halo { animation: none; opacity: .14; transform: none; }
 }
+
+/* FoldText paper panels, scoped strictly to the large right-hand heading. */
+.panel-visual-title h2 .heading-fold-segment { display:inline-block;vertical-align:baseline;perspective:700px;white-space:pre; }
+.panel-visual-title h2 .heading-fold-piece { position:relative;display:inline-block;line-height:inherit;white-space:pre;transform-origin:50% 0%;backface-visibility:hidden; }
+.panel-visual-title h2 .heading-fold-piece::after { content:attr(data-fold-text);position:absolute;inset:0;pointer-events:none;color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.22) 42%,rgba(255,255,255,.26));-webkit-background-clip:text;background-clip:text;opacity:var(--heading-crease,0); }
+@media(prefers-reduced-motion:reduce){.panel-visual-title h2 .heading-fold-piece{transform:none!important;opacity:1!important}.panel-visual-title h2 .heading-fold-piece::after{opacity:0!important}}
+
+/* New entrance affects only the photo, introduction and supporting copy. */
+.panel-circle{position:relative}
+.photo-reveal-stage{position:absolute;inset:0}
+.photo-reveal-cover{position:absolute;inset:0;background:var(--paper);pointer-events:none;opacity:0}
+.intro-type-grid{display:grid;grid-template-columns:minmax(0,1fr);height:var(--intro-reserved-height);overflow:clip}
+.intro-type-ghost,.intro-type-copy{grid-area:1/1;min-width:0;align-self:start}
+.intro-type-ghost{visibility:hidden;user-select:none}
+@media(prefers-reduced-motion:reduce){.photo-reveal-stage{filter:none!important}.photo-reveal-cover{opacity:0!important}}

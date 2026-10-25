@@ -1,3 +1,35 @@
+/* Paper-fold behavior adapted from React Bits FoldText (David Haz).
+MIT + Commons Clause License Condition v1.0
+
+Copyright (c) 2026 David Haz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, and distribute the Software **as part of an application, website, or product**, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+## Commons Clause Restriction
+
+You may use this Software, including for any commercial purpose, **so long as you do not sell, sublicense, or redistribute the components themselves-whether alone, in a bundle, or as a ported version.**
+
+The same restriction covers the React Bits tools (Background Studio, Texture Lab, Shape Magic, Center Stage, Sound Lab and any tools added later) and the sounds in the sound library. **You may not sell, sublicense, or redistribute the tools or the sounds themselves, or offer the tools or a substantially similar copy of them as a hosted service-whether alone, in a bundle, or as a ported version.**
+
+What you make with the tools is yours to use. You can use exported code, images, videos, and audio files in any personal or commercial application, website, or product, including paid ones. **You may not sell or redistribute the exports on their own, either individually or as the product itself, such as a sound, texture, background, or template pack.**
+
+## No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 (() => {
   "use strict";
 
@@ -114,6 +146,12 @@
   function polar(angle, radius) {
     return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
   }
+
+  // Warm monochrome mapped from the unmodified Publications photograph.
+  // The source JPEGs, the two color images and the reference stay untouched.
+  const photoDefinitions = svg("defs", {}, wheel.querySelector(".wheel-geometry"));
+  const photoTone = svg("filter", { id: "hub-warm-mono", "color-interpolation-filters": "sRGB" }, photoDefinitions);
+  svg("feColorMatrix", { type: "matrix", values: "0.2250935 0.7572288 0.0764428 0 -0.0323302 0.2104422 0.7079411 0.0714672 0 0.0082152 0.1971864 0.6633476 0.0669655 0 0.0138209 0 0 0 1 0" }, photoTone);
 
   directions.forEach((item, i) => {
     const angle = nodeAngles[i];
@@ -322,13 +360,256 @@
     const external = contact.url.startsWith("http") ? ' target="_blank" rel="noopener noreferrer"' : '';
     return '<a' + props + ' href="' + escapeHtml(contact.url) + '"' + external + '>' + icon + '</a>';
   }
+  // Photo, introduction and supporting paragraphs share the title's time scale.
+  let disposePanelAppearance = () => {};
+  function attachPanelAppearance(root) {
+    const stage = root.querySelector('.photo-reveal-stage');
+    const cover = root.querySelector('.photo-reveal-cover');
+    const image = stage?.querySelector('img');
+    const lead = root.querySelector('.panel-description-lead');
+    const supporting = Array.from(root.querySelectorAll('.panel-description-support p'));
+    if (!stage || !cover || !image || !lead) return () => {};
+    if (reducedMotion.matches) {
+      root.dataset.entryState = 'still';lead.dataset.introState = 'complete';
+      return () => {};
+    }
+    const count = root.querySelectorAll('.panel-visual-title h2 .heading-fold-piece').length;
+    const duration = Math.max(950, Math.min(1800, 650 + Math.max(0, count - 1) * 45));
+    const text = lead.textContent;
+    const glyphs = typeof Intl.Segmenter === 'function'
+      ? Array.from(new Intl.Segmenter('ru',{granularity:'grapheme'}).segment(text),item=>item.segment)
+      : Array.from(text);
+    const box = lead.getBoundingClientRect(), style = getComputedStyle(lead);
+    const verticalEdges = ['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth']
+      .reduce((sum,key)=>sum+(parseFloat(style[key])||0),0);
+    // Measure the final native line wrapping once. Reveal that layout rather
+    // than repeatedly laying out a growing prefix (which can move whole words).
+    const textNode = lead.firstChild, range = document.createRange();
+    const originX=box.left+(parseFloat(style.paddingLeft)||0)+(parseFloat(style.borderLeftWidth)||0);
+    const originY=box.top+(parseFloat(style.paddingTop)||0)+(parseFloat(style.borderTopWidth)||0);
+    let offset=0,previousCut={x:0,top:0,bottom:0};
+    const cuts=glyphs.map(glyph=>{
+      range.setStart(textNode,offset);offset+=glyph.length;range.setEnd(textNode,offset);
+      const r=range.getBoundingClientRect();
+      if(!r.height)return previousCut;
+      previousCut={x:Math.max(0,r.right-originX),top:Math.max(0,r.top-originY),bottom:Math.max(0,r.bottom-originY)};
+      return previousCut;
+    });
+    lead.dataset.revealHeight = String(box.height);
+    lead.style.setProperty('--intro-reserved-height', Math.max(0,box.height-verticalEdges)+'px');
+    const accessible = document.createElement('span');
+    accessible.className = 'visually-hidden';accessible.textContent = text;
+    const grid = document.createElement('span');grid.className = 'intro-type-grid';
+    const ghost = document.createElement('span');ghost.className = 'intro-type-ghost';ghost.textContent = text;
+    const typed = document.createElement('span');typed.className = 'intro-type-copy';typed.textContent=text;typed.dataset.visibleCharacters='0';
+    typed.style.clipPath='inset(0 100% 100% 0)';
+    ghost.setAttribute('aria-hidden','true');typed.setAttribute('aria-hidden','true');
+    grid.append(ghost,typed);lead.replaceChildren(accessible,grid);
+    lead.dataset.introState = 'typing';
+    root.dataset.entryDuration = String(duration);root.dataset.entryState = 'entering';
+    cover.style.opacity = '1';stage.style.filter = 'blur(4px)';
+    supporting.forEach(paragraph=>{paragraph.style.opacity='0';});
+    let frame = null, destroyed = false, finished = false, restored = false, lastCount = -1;
+    const started = performance.now();
+    let photoStart = image.complete && image.naturalWidth > 0 ? started + 40 : null;
+    let photoFailed = image.complete && !image.naturalWidth;
+    const clamp = value => Math.max(0,Math.min(1,value));
+    function restoreText() {
+      if (restored) return;
+      restored = true;lead.textContent = text;
+      lead.style.removeProperty('--intro-reserved-height');
+      lead.dataset.introState = 'complete';
+    }
+    function finish() {
+      finished = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;restoreText();
+      cover.style.opacity = '0';stage.style.removeProperty('filter');
+      supporting.forEach(paragraph=>paragraph.style.removeProperty('opacity'));
+      root.dataset.entryState = 'complete';
+    }
+    function schedule() {
+      if (!destroyed && !finished && frame === null && root.isConnected) frame=requestAnimationFrame(draw);
+    }
+    function draw(now) {
+      frame = null;
+      if (destroyed || finished || !root.isConnected) return;
+      if (reducedMotion.matches) {finish();return;}
+      const elapsed = now-started;
+      const progress = clamp((elapsed-60)/Math.max(1,duration-60));
+      const visible = Math.floor(glyphs.length*progress);
+      if (!restored && visible !== lastCount) {
+        const cut=cuts[visible-1];
+        typed.style.clipPath=cut
+          ? 'polygon(0 0,100% 0,100% '+cut.top+'px,'+cut.x+'px '+cut.top+'px,'+cut.x+'px '+cut.bottom+'px,0 '+cut.bottom+'px)'
+          : 'inset(0 100% 100% 0)';
+        typed.dataset.visibleCharacters=String(visible);lastCount=visible;
+      }
+      if (progress >= 1) restoreText();
+      let supportDone = true;
+      supporting.forEach((paragraph,index)=>{
+        const p=clamp((elapsed-duration*.28-index*80)/700);
+        paragraph.style.opacity=String(1-Math.pow(1-p,3));
+        if(p<1)supportDone=false;
+      });
+      let photoDone = photoFailed;
+      if(photoStart !== null){
+        const p=clamp((now-photoStart)/duration),smooth=p*p*(3-2*p);
+        cover.style.opacity=String(1-smooth);
+        stage.style.filter='blur('+(4*(1-smooth))+'px)';
+        photoDone=p>=1;
+      }else if(photoFailed){cover.style.opacity='0';stage.style.removeProperty('filter');}
+      if(progress>=1 && supportDone && photoDone){finish();return;}
+      root.dataset.entryState=progress>=1&&supportDone&&photoStart===null?'waiting-image':'entering';
+      // Do not spin while an uncached photo is loading; its load handler resumes.
+      if(progress<1 || !supportDone || photoStart!==null&&!photoDone)schedule();
+    }
+    const ready = () => {
+      if(destroyed || finished || photoStart!==null || !image.naturalWidth)return;
+      photoStart=performance.now()+40;photoFailed=false;schedule();
+    };
+    const failed = () => {if(!destroyed&&!finished){photoFailed=true;schedule();}};
+    const resized = () => {if(!destroyed)finish();};
+    const motion = () => {if(reducedMotion.matches&&!destroyed)finish();};
+    image.addEventListener('load',ready,{once:true});image.addEventListener('error',failed,{once:true});
+    if(!image.complete && typeof image.decode==='function')image.decode().then(ready).catch(()=>{});
+    window.addEventListener('resize',resized,{passive:true});
+    reducedMotion.addEventListener('change',motion);
+    // A font swap may change paragraph height. System fonts do not wait for the
+    // unrelated navigation font, so the normal entrance keeps its full duration.
+    if(document.fonts){
+      try{
+        if(!document.fonts.check(style.fontWeight+' '+style.fontSize+' '+style.fontFamily))
+          document.fonts.ready.then(()=>{if(!destroyed)finish();});
+      }catch{}
+    }
+    schedule();
+    return () => {
+      destroyed=true;finish();
+      image.removeEventListener('load',ready);image.removeEventListener('error',failed);
+      window.removeEventListener('resize',resized);reducedMotion.removeEventListener('change',motion);
+    };
+  }
+
+  // Paper-fold entrance and cursor refold, adapted for the existing two-line type.
+  // React Bits FoldText: https://reactbits.dev/text-animations/fold-text
+  // Native glyph advances are measured before splitting, preserving kerning.
+  let disposeHeadingMotion = () => {};
+  function attachHeadingMotion(heading) {
+    if (!heading) return () => {};
+    const lines = Array.from(heading.querySelectorAll('.panel-heading-line'));
+    const texts = lines.map(line => line.textContent);
+    heading.setAttribute('aria-label', texts.join(' '));
+    let pieces = [], frame = null, resizeFrame = null, pointer = null;
+    let start = performance.now(), lastFrame = start, entrance = true, destroyed = false;
+    const clamp01 = value => Math.max(0, Math.min(1, value));
+    function draw(time) {
+      frame = null;
+      if (destroyed || !heading.isConnected || reducedMotion.matches) return;
+      const step = Math.min(64, Math.max(0, time - lastFrame)) / 1000;
+      lastFrame = time;
+      const box = heading.getBoundingClientRect();
+      let moving = false, opening = false, folded = false;
+      pieces.forEach((piece, index) => {
+        const t = entrance ? clamp01((time - start - index * 45) / 650) : 1;
+        const progress = 1 - Math.pow(1 - t, 4);
+        if (t < 1) {moving = true;opening = true;}
+        const distance = pointer ? Math.hypot(box.left + piece.x - pointer.x, box.top + piece.y - pointer.y) / 140 : 1;
+        const aim = distance < 1 ? 1 - distance * distance * (3 - 2 * distance) : 0;
+        const rate = aim > piece.hover ? 14 : 6;
+        piece.hover += (aim - piece.hover) * (1 - Math.exp(-rate * step));
+        if (Math.abs(aim - piece.hover) > .001) moving = true;
+        else piece.hover = aim;
+        const tilt = piece.hover * 45;
+        if (tilt > .05) folded = true;
+        piece.node.style.transform = 'rotateX(' + (-((1 - progress) * 92 + tilt)) + 'deg)';
+        piece.node.style.opacity = String(progress);
+        piece.node.style.setProperty('--heading-crease', String(.55 * clamp01(1 - progress + tilt / 90)));
+      });
+      heading.dataset.foldState = opening ? 'entering' : folded ? 'hover' : 'idle';
+      if (moving) frame = requestAnimationFrame(draw);
+    }
+    function schedule() {
+      if (!destroyed && !reducedMotion.matches && frame === null) {
+        lastFrame = performance.now();
+        frame = requestAnimationFrame(draw);
+      }
+    }
+    function build(play) {
+      if (destroyed || !heading.isConnected) return;
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;pieces = [];
+      lines.forEach((line, index) => {line.textContent = texts[index];});
+      if (reducedMotion.matches) {heading.dataset.foldState = 'still';return;}
+      const headingBox = heading.getBoundingClientRect();
+      lines.forEach((line, lineIndex) => {
+        const text = texts[lineIndex], textNode = line.firstChild;
+        if (!textNode || !text) return;
+        const glyphs = typeof Intl.Segmenter === 'function'
+          ? Array.from(new Intl.Segmenter('ru', {granularity:'grapheme'}).segment(text), item => ({text:item.segment, offset:item.index}))
+          : Array.from(text).reduce((items, glyph) => {items.push({text:glyph,offset:items.reduce((n,item)=>n+item.text.length,0)});return items;}, []);
+        const ranges = glyphs.map(glyph => {
+          const range = document.createRange();range.setStart(textNode,glyph.offset);range.setEnd(textNode,glyph.offset+glyph.text.length);
+          return range.getBoundingClientRect();
+        });
+        // Leave unusual right-to-left runs as native text rather than distorting them.
+        if (ranges.some((rect,index) => index && rect.left < ranges[index-1].left)) return;
+        const fragment = document.createDocumentFragment();
+        glyphs.forEach((glyph, index) => {
+          const segment = document.createElement('span'), piece = document.createElement('span');
+          segment.className = 'heading-fold-segment';segment.setAttribute('aria-hidden','true');
+          segment.style.width = Math.max(0, (ranges[index+1]?.left ?? ranges[index].right) - ranges[index].left) + 'px';
+          piece.className = 'heading-fold-piece';piece.textContent = glyph.text;piece.dataset.foldText = glyph.text;
+          if (play) {piece.style.opacity = '0';piece.style.transform = 'rotateX(-92deg)';}
+          segment.append(piece);fragment.append(segment);
+          pieces.push({node:piece,segment,hover:0,x:0,y:0});
+        });
+        line.replaceChildren(fragment);
+      });
+      pieces.forEach(piece => {
+        const rect = piece.segment.getBoundingClientRect();
+        piece.x = rect.left - headingBox.left + rect.width/2;
+        piece.y = rect.top - headingBox.top + rect.height/2;
+      });
+      entrance = play;start = performance.now();lastFrame = start;
+      heading.dataset.foldState = play ? 'entering' : 'idle';
+      schedule();
+    }
+    const move = event => {if (event.pointerType === 'touch') return;pointer={x:event.clientX,y:event.clientY};schedule();};
+    const leave = () => {pointer=null;schedule();};
+    const scroll = () => {if(pointer)schedule();};
+    const resize = () => {
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {resizeFrame=null;build(false);});
+    };
+    heading.addEventListener('pointermove',move,{passive:true});
+    heading.addEventListener('pointerleave',leave);
+    window.addEventListener('resize',resize,{passive:true});
+    window.addEventListener('scroll',scroll,{passive:true,capture:true});
+    reducedMotion.addEventListener('change',resize);
+    build(true);
+    if (document.fonts?.status !== 'loaded') document.fonts?.ready.then(() => {if(!destroyed)build(false);});
+    return () => {
+      destroyed=true;
+      if(frame!==null)cancelAnimationFrame(frame);
+      if(resizeFrame!==null)cancelAnimationFrame(resizeFrame);
+      heading.removeEventListener('pointermove',move);heading.removeEventListener('pointerleave',leave);
+      window.removeEventListener('resize',resize);window.removeEventListener('scroll',scroll,{capture:true});
+      reducedMotion.removeEventListener('change',resize);
+    };
+  }
+
   function renderPanel(index) {
+    disposeHeadingMotion();
+    disposePanelAppearance();
     const item = directions[index];
     panel.dataset.direction = item.number;
+    const monochrome = ["0.2", "0.4", "0.6", "0.7"].includes(item.number);
+    const photoFilter = monochrome ? ";filter:url(#hub-warm-mono)" + (item.number === "0.2" ? " brightness(1.04)" : "") : "";
     const heading = item.head.map(line => '<span class="panel-heading-line">' + escapeHtml(line) + '</span>').join(' ');
     const visual =
       '<div class="panel-visual-row">' +
-        '<div class="panel-circle"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + '"></div>' +
+        '<div class="panel-circle"><div class="photo-reveal-stage"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + photoFilter + '"></div><span class="photo-reveal-cover" aria-hidden="true"></span></div>' +
         '<div class="panel-visual-title">' +
           '<div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span>' + escapeHtml(item.category) + '</span></div>' +
           '<h2>' + heading + '</h2>' +
@@ -355,6 +636,8 @@
             '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>' +
         '</div>';
     }
+    disposeHeadingMotion = attachHeadingMotion(panel.querySelector(".panel-visual-title h2"));
+    disposePanelAppearance = attachPanelAppearance(panel);
   }
 
   panel.addEventListener("click", event => {
