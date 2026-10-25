@@ -380,3 +380,60 @@ p { text-wrap: pretty; }
   .panel-visual-row { margin-right: calc(-1 * var(--panel-right-air)); }
   .panel-visual-title { padding-right: var(--panel-right-air); }
 }
+
+/* One shared paragraph rhythm, including sections with an intentionally empty paragraph. */
+.direction-panel { --paragraph-gap: 12px; --lead-gap: 16px; }
+.panel-description { min-height: 0; }
+.panel-description-lead { margin-bottom: var(--lead-gap); }
+.panel-description-rule { display: none; }
+.panel-description-support { gap: var(--paragraph-gap); }
+.panel-description-support p:empty { display: none; }
+
+/* Clip every composited photo layer before blur/filter animation starts. */
+.panel-circle { isolation: isolate; clip-path: circle(50%); }
+.panel-circle img, .photo-reveal-stage, .photo-reveal-cover {
+  border-radius: 50%; clip-path: circle(50%); overflow: hidden;
+}
+
+@media (min-width: 1131px) {
+  .site-shell { align-items: center; }
+  .hub-grid { min-height: var(--hub-panel-height, 0px); }
+}
+
+/* The mobile card preserves the photo + complete title block side by side. */
+@media (max-width: 700px) {
+  .site-shell { padding-bottom: 24px; }
+  .hub-grid { gap: 22px; }
+  .direction-panel {
+    --panel-right-air: 0px;
+    --mobile-photo: clamp(91px, 26vw, 130px);
+    width: 100%; margin: 0; padding: 20px 16px 24px;
+    border: 1px solid var(--ink); border-radius: 20px;
+    background: transparent; overflow: clip;
+  }
+  .panel-visual-row {
+    display: grid; grid-template-columns: var(--mobile-photo) minmax(0, 1fr);
+    align-items: center; gap: 14px; margin-right: 0;
+  }
+  .panel-circle { width: 100%; transform: none; justify-self: start; }
+  .direction-panel .panel-visual-title {
+    display: grid; grid-template-rows: auto auto auto; gap: 8px;
+    width: 100%; height: auto; min-height: var(--mobile-photo);
+    transform: none; padding: 0;
+  }
+  .panel-context {
+    display: flex; align-items: baseline; align-self: end;
+    min-height: 0; gap: 8px; margin: 0; white-space: normal;
+  }
+  .panel-context span:last-child { min-width: 0; }
+  .panel-visual-title h2 {
+    width: 100%; margin: 0; font-size: clamp(24px, 6.8vw, 42px);
+    -webkit-text-stroke: 0;
+  }
+  .panel-info-eyebrow { white-space: normal; line-height: 1.35; }
+  .panel-description { margin-top: 24px; }
+  .panel-contact-row, .panel-route-row { margin-top: 24px; }
+  .wheel-node { width: 78px; }
+}
+
+@media(max-width:700px){.wheel-particles,.wheel-geometry{transform:scale(.90);transform-origin:center}}

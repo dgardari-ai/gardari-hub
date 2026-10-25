@@ -184,283 +184,26 @@ window.GARDARI_HUB_CONTENT = {
       "url": "tel:+73433758987"
     }
   ],
-  "blocks": [
-    {
-      "id": "a001",
-      "section": "about-path",
-      "label": "0.1.1 · ОБ АВТОРЕ / ПУТЬ",
-      "value": "0.1.1 · ОБ АВТОРЕ / ПУТЬ"
-    },
-    {
-      "id": "a002",
-      "section": "about-path",
-      "label": "к искусству не по прямой",
-      "value": "к искусству\nне по прямой"
-    },
-    {
-      "id": "a003",
-      "section": "about-path",
-      "label": "В моём опыте были занятия, на первый взгляд далёкие друг от друга",
-      "value": "В моём опыте были занятия, на первый взгляд далёкие друг от друга. Со временем они оказались разными способами узнавать человека и мир."
-    },
-    {
-      "id": "a004",
-      "section": "about-path",
-      "label": "01",
-      "value": "01"
-    },
-    {
-      "id": "a005",
-      "section": "about-path",
-      "label": "От искусства — к праву и науке",
-      "value": "От искусства — к праву и науке"
-    },
-    {
-      "id": "a006",
-      "section": "about-path",
-      "label": "После первоначального интереса к художественному образованию — юр",
-      "value": "После первоначального интереса к художественному образованию — юридическая учёба, исследовательская работа в Уральском отделении РАН и обращение к экономике."
-    },
-    {
-      "id": "a007",
-      "section": "about-path",
-      "label": "02",
-      "value": "02"
-    },
-    {
-      "id": "a008",
-      "section": "about-path",
-      "label": "Опыт разных профессий",
-      "value": "Опыт разных профессий"
-    },
-    {
-      "id": "a009",
-      "section": "about-path",
-      "label": "Производство, работа моделью, юриспруденция, управление, предприн",
-      "value": "Производство, работа моделью, юриспруденция, управление, предпринимательство. Не прямая карьера в одной области, а встреча с совершенно разными устройствами жизни."
-    },
-    {
-      "id": "a010",
-      "section": "about-path",
-      "label": "03",
-      "value": "03"
-    },
-    {
-      "id": "a011",
-      "section": "about-path",
-      "label": "Философия и человек",
-      "value": "Философия и человек"
-    },
-    {
-      "id": "a012",
-      "section": "about-path",
-      "label": "Философское образование, психология, исследование мышления и чело",
-      "value": "Философское образование, психология, исследование мышления и человеческих мотивов расширили круг вопросов, которые позже перешли и в художественную практику."
-    },
-    {
-      "id": "a013",
-      "section": "about-path",
-      "label": "04",
-      "value": "04"
-    },
-    {
-      "id": "a014",
-      "section": "about-path",
-      "label": "Возвращение к художественному",
-      "value": "Возвращение к художественному"
-    },
-    {
-      "id": "a015",
-      "section": "about-path",
-      "label": "Обучение монументально-декоративному искусству и истории искусств",
-      "value": "Обучение монументально-декоративному искусству и истории искусства стало продолжением пути, на котором уже соединились ремесло, теория, наблюдение и личный опыт."
-    },
-    {
-      "id": "a016",
-      "section": "about-path",
-      "label": "ДЕНИС ГАРДАРИ / БИОГРАФИЯ",
-      "value": "ДЕНИС ГАРДАРИ / БИОГРАФИЯ"
-    },
-    {
-      "id": "a017",
-      "section": "about-path",
-      "label": "01 / 03",
-      "value": "01 / 03"
-    },
-    {
-      "id": "a018",
-      "section": "about-art",
-      "label": "0.1.2 · ОБ АВТОРЕ / ИСКУССТВО",
-      "value": "0.1.2 · ОБ АВТОРЕ / ИСКУССТВО"
-    },
-    {
-      "id": "a019",
-      "section": "about-art",
-      "label": "смысл обретает материю",
-      "value": "смысл\nобретает\nматерию"
-    },
-    {
-      "id": "a020",
-      "section": "about-art",
-      "label": "Живопись, графика, художественное стекло и цифровая работа — разн",
-      "value": "Живопись, графика, художественное стекло и цифровая работа — разные способы приблизиться к тому, для чего иногда недостаточно одних слов."
-    },
-    {
-      "id": "a021",
-      "section": "about-art",
-      "label": "ХУДОЖЕСТВЕННАЯ ПРАКТИКА / ФРАГМЕНТ РАБОТЫ",
-      "value": "ХУДОЖЕСТВЕННАЯ ПРАКТИКА / ФРАГМЕНТ РАБОТЫ"
-    },
-    {
-      "id": "a022",
-      "section": "about-art",
-      "label": "Образ может родиться из мифа, литературного сюжета, исторического",
-      "value": "Образ может родиться из мифа, литературного сюжета, исторического события или случайного впечатления. Меня занимает момент, когда эти, казалось бы, далёкие источники начинают говорить об одном."
-    },
-    {
-      "id": "a023",
-      "section": "about-art",
-      "label": "Материал здесь не просто средство изображения. Фактура, стекло, ц",
-      "value": "Материал здесь не просто средство изображения. Фактура, стекло, цвет, многослойность и сама работа рук порой открывают то, чего ещё не было в первоначальном замысле."
-    },
-    {
-      "id": "a024",
-      "section": "about-art",
-      "label": "ДЕНИС ГАРДАРИ / ХУДОЖЕСТВЕННАЯ ПРАКТИКА",
-      "value": "ДЕНИС ГАРДАРИ / ХУДОЖЕСТВЕННАЯ ПРАКТИКА"
-    },
-    {
-      "id": "a025",
-      "section": "about-art",
-      "label": "02 / 03",
-      "value": "02 / 03"
-    },
-    {
-      "id": "a026",
-      "section": "about-thinking",
-      "label": "0.1.3 · ОБ АВТОРЕ / МЫШЛЕНИЕ",
-      "value": "0.1.3 · ОБ АВТОРЕ / МЫШЛЕНИЕ"
-    },
-    {
-      "id": "a027",
-      "section": "about-thinking",
-      "label": "связи важнее границ",
-      "value": "связи\nважнее\nграниц"
-    },
-    {
-      "id": "a028",
-      "section": "about-thinking",
-      "label": "И в искусстве, и в исследовании меня интересует, как отдельные яв",
-      "value": "И в искусстве, и в исследовании меня интересует, как отдельные явления складываются в смысловое целое. Иногда путь от одной идеи к другой проходит через столетия."
-    },
-    {
-      "id": "a029",
-      "section": "about-thinking",
-      "label": "01 / ПИШУ",
-      "value": "01 / ПИШУ"
-    },
-    {
-      "id": "a030",
-      "section": "about-thinking",
-      "label": "Книги, эссе, исследования",
-      "value": "Книги, эссе, исследования"
-    },
-    {
-      "id": "a031",
-      "section": "about-thinking",
-      "label": "Философия, культурология, история искусства и природа мышления. М",
-      "value": "Философия, культурология, история искусства и природа мышления. Мне важно не просто собирать факты, а находить отношения, которые меняют понимание предмета."
-    },
-    {
-      "id": "a032",
-      "section": "about-thinking",
-      "label": "02 / РАЗГОВАРИВАЮ",
-      "value": "02 / РАЗГОВАРИВАЮ"
-    },
-    {
-      "id": "a033",
-      "section": "about-thinking",
-      "label": "Лекции и встречи",
-      "value": "Лекции и встречи"
-    },
-    {
-      "id": "a034",
-      "section": "about-thinking",
-      "label": "Разговор об искусстве способен соединить художника и зрителя, сов",
-      "value": "Разговор об искусстве способен соединить художника и зрителя, современное событие и древний сюжет. Лекция для меня — форма совместного размышления."
-    },
-    {
-      "id": "a035",
-      "section": "about-thinking",
-      "label": "03 / СОЗДАЮ",
-      "value": "03 / СОЗДАЮ"
-    },
-    {
-      "id": "a036",
-      "section": "about-thinking",
-      "label": "Методы и новые инструменты",
-      "value": "Методы и новые инструменты"
-    },
-    {
-      "id": "a037",
-      "section": "about-thinking",
-      "label": "Исследую возможности человеческого мышления, проектирования и сот",
-      "value": "Исследую возможности человеческого мышления, проектирования и сотрудничества с искусственным интеллектом. Теоретические вопросы переходят в рабочие способы действия."
-    },
-    {
-      "id": "a038",
-      "section": "about-thinking",
-      "label": "ДЕНИС ГАРДАРИ / АВТОРСКАЯ РАБОТА",
-      "value": "ДЕНИС ГАРДАРИ / АВТОРСКАЯ РАБОТА"
-    },
-    {
-      "id": "a039",
-      "section": "about-thinking",
-      "label": "03 / 03",
-      "value": "03 / 03"
-    },
-    {
-      "id": "a040",
-      "section": "about-path",
-      "label": "ИСКУССТВО И МАТЕРИАЛ",
-      "value": "ИСКУССТВО И МАТЕРИАЛ"
-    },
-    {
-      "id": "a041",
-      "section": "about-art",
-      "label": "МЫШЛЕНИЕ И ТЕКСТЫ",
-      "value": "МЫШЛЕНИЕ И ТЕКСТЫ"
-    },
-    {
-      "id": "a042",
-      "section": "about-thinking",
-      "label": "ВЕРНУТЬСЯ К ХАБУ",
-      "value": "ВЕРНУТЬСЯ К ХАБУ"
-    },
-    {
-      "id": "a043",
-      "section": "about-thinking",
-      "label": "ОБ АВТОРЕ НА GARDARI.ART",
-      "value": "ОБ АВТОРЕ НА GARDARI.ART"
-    }
-  ],
-  "aboutImage": {
-    "image": "./assets/hub-art.jpg",
-    "imageAlt": "Фрагмент многослойной художественной работы Дениса Гардари",
-    "imagePosition": "50% 47%"
-  },
   "styles": {
     "d01-subtitle": {
       "all": {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d01-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d02-subtitle": {
@@ -468,6 +211,10 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d03-subtitle": {
@@ -475,6 +222,10 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d04-subtitle": {
@@ -482,6 +233,10 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d05-subtitle": {
@@ -489,6 +244,10 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d06-subtitle": {
@@ -496,6 +255,10 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "8.5px",
+        "margin-top": "0px"
       }
     },
     "d07-subtitle": {
@@ -503,47 +266,70 @@ window.GARDARI_HUB_CONTENT = {
         "color": "#202124",
         "font-size": "12px",
         "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
       }
     },
     "d02-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d03-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d04-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d05-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d06-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d07-text": {
       "all": {
         "font-size": "20px",
         "line-height": "24px"
-      }
-    },
-    "d06-header": {
+      },
       "mobile": {
-        "padding-bottom": "16px"
+        "font-size": "18px",
+        "line-height": "23px"
       }
     },
     "d01-line-heading": {
@@ -591,36 +377,57 @@ window.GARDARI_HUB_CONTENT = {
     "d01-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d02-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d03-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d04-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d05-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d06-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d07-nav": {
       "all": {
         "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "8.5px"
       }
     },
     "d01-category": {
@@ -659,26 +466,7 @@ window.GARDARI_HUB_CONTENT = {
       }
     }
   },
-  "links": [
-    {
-      "id": "link1",
-      "section": "about-path",
-      "url": "#about-art"
-    },
-    {
-      "id": "link2",
-      "section": "about-art",
-      "url": "#about-thinking"
-    },
-    {
-      "id": "link3",
-      "section": "about-thinking",
-      "url": "#hub-home"
-    },
-    {
-      "id": "link4",
-      "section": "about-thinking",
-      "url": "https://www.gardari.art/obo-mne/"
-    }
-  ]
+  "features": {
+    "aboutJourney": false
+  }
 };

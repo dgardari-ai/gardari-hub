@@ -47,6 +47,8 @@ SOFTWARE.
   const panel = document.getElementById("direction-panel");
   const aboutJourney = document.getElementById("about-journey");
   const aboutStart = document.getElementById("about-path");
+  const aboutEnabled = window.GARDARI_HUB_CONTENT.features?.aboutJourney !== false &&
+    Boolean(aboutJourney && aboutStart);
   const center = { x: 300, y: 300 };
   const orbitRadius = 181;
   const fullCircle = 2 * Math.PI;
@@ -210,8 +212,8 @@ SOFTWARE.
     buttons.forEach((button, i) => {
       const angle = nodeAngles[i] + navigationOffset;
       const point = polar(angle, orbitRadius);
-      button.style.left = (50 + Math.cos(angle) * 40.7) + "%";
-      button.style.top = (50 + Math.sin(angle) * 40.7) + "%";
+      button.style.left = (50 + Math.cos(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
+      button.style.top = (50 + Math.sin(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
       for (const circle of [dots[i], hitAreas[i]]) {
         circle.setAttribute("cx", point.x);
         circle.setAttribute("cy", point.y);
@@ -307,8 +309,8 @@ SOFTWARE.
       }
     });
     // Геометрия и положение подписей отделены друг от друга.
-    buttons[i].style.left = (50 + Math.cos(angle) * 40.7) + "%";
-    buttons[i].style.top = (50 + Math.sin(angle) * 40.7) + "%";
+    buttons[i].style.left = (50 + Math.cos(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
+    buttons[i].style.top = (50 + Math.sin(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
     buttons[i].setAttribute("aria-label", item.number + " " + item.title);
     buttons[i].dataset.direction = item.number;
     buttons[i].querySelector(".wheel-node-number").textContent = item.number;
@@ -319,6 +321,7 @@ SOFTWARE.
 
   function resizeParticleCanvas() {
     if (!particleContext) return;
+    drawNavigationPositions();
     const size = wheel.getBoundingClientRect().width;
     const pixelSize = Math.max(1, Math.round(size * Math.min(window.devicePixelRatio || 1, 2)));
     if (particleCanvas.width !== pixelSize || particleCanvas.height !== pixelSize) {
@@ -789,12 +792,15 @@ SOFTWARE.
       marker.remove();
       const titleBox = title.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
       const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
-      alignOpticalLeft(title.querySelector('.panel-context'), headingBox.left, context);
-      alignOpticalLeft(title.querySelector('.panel-info-eyebrow'), headingBox.left, context);
+      const mobile = window.innerWidth <= 700;
+      const labelAxis = headingBox.left;
+      alignOpticalLeft(title.querySelector('.panel-context'), labelAxis, context);
+      alignOpticalLeft(title.querySelector('.panel-info-eyebrow'), labelAxis, context);
       rule.style.left = (headingBox.left - titleBox.left) + 'px';
       rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - rule.getBoundingClientRect().height / 2) + 'px';
       // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
-      rule.style.width = Math.max(0, document.documentElement.clientWidth - headingBox.left) + 'px';
+      const rightEdge = mobile ? panel.getBoundingClientRect().right - 1 : document.documentElement.clientWidth;
+      rule.style.width = Math.max(0, rightEdge - headingBox.left) + 'px';
       rule.style.visibility = 'visible';
     }
     function schedule() {
@@ -816,12 +822,7 @@ SOFTWARE.
     };
   }
 
-  function renderPanel(index) {
-    disposeHeadingMotion();
-    disposePanelAppearance();
-    disposeHeadingRule();
-    const item = directions[index];
-    panel.dataset.direction = item.number;
+  function panelMarkup(item) {
     const monochrome = ["0.2", "0.4", "0.6", "0.7"].includes(item.number);
     const photoFilter = monochrome ? ";filter:url(#hub-warm-mono)" + (item.number === "0.2" ? " brightness(1.04)" : "") : "";
     const heading = item.head.map(line => '<span class="panel-heading-line">' + escapeHtml(line) + '</span>').join(' ');
@@ -840,21 +841,96 @@ SOFTWARE.
       '<div class="panel-description-rule" aria-hidden="true"></div>' +
       '<div class="panel-description-support"><p>' + escapeHtml(item.detail) + '</p>' + more + '</div></div>';
     if (item.number === "0.1") {
-      panel.innerHTML = visual + '<div class="panel-description panel-description--author">' + copy + '</div>' +
-        '<div class="panel-contact-row" role="group" aria-label="Контакты и подробности об авторе">' +
+      const authorButtonAttributes = aboutEnabled
+        ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
+        : 'data-tooltip="Концепт Бюро" aria-label="Перейти к разделу 0.2" aria-controls="direction-panel"';
+      const authorChevron = aboutEnabled ? 'm5 9 7 7 7-7' : 'm9 5 7 7-7 7';
+      return visual + '<div class="panel-description panel-description--author">' + copy + '</div>' +
+        '<div class="panel-contact-row" role="group" aria-label="' + (aboutEnabled ? 'Контакты и подробности об авторе' : 'Контакты и переход к следующему разделу') + '">' +
           authorContacts.map(renderContact).join('') +
-          '<button type="button" class="panel-cta panel-cta--author" data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '">' +
-            '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 9 7 7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg>' +
+          '<button type="button" class="panel-cta panel-cta--author" ' + authorButtonAttributes + '>' +
+            '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="' + authorChevron + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg>' +
           '</button></div>';
     } else {
       const linkProps = 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer"';
-      panel.innerHTML = visual + '<div class="panel-description">' + copy + '</div>' +
+      return visual + '<div class="panel-description">' + copy + '</div>' +
         '<div class="panel-route-row" role="group" aria-label="Переход в раздел ' + escapeHtml(item.short) + '">' +
           '<a class="panel-route-pill" ' + linkProps + '>' + escapeHtml(item.action) + '</a>' +
           '<a class="panel-cta panel-cta--route" ' + linkProps + ' aria-label="' + escapeHtml(item.action) + '">' +
             '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>' +
         '</div>';
     }
+  }
+
+  // Measure all seven natural panels at the real column width. Scoped copies of
+  // the author CSS keep per-section edits effective without duplicating DOM IDs.
+  let panelMeasureFrame = null;
+  function measurePanelEnvelope() {
+    panelMeasureFrame = null;
+    const grid = panel.parentElement;
+    if (window.innerWidth <= 1130) {
+      grid.style.removeProperty('--hub-panel-height');
+      return;
+    }
+    const stage = document.createElement('div');
+    stage.id = 'hub-layout-probes';
+    stage.setAttribute('aria-hidden', 'true');
+    stage.inert = true;
+    stage.style.cssText = 'position:absolute;left:-100000px;top:0;visibility:hidden;pointer-events:none';
+    const scoped = document.createElement('style');
+    for (const sheet of document.styleSheets) {
+      if (!sheet.href || !new URL(sheet.href).pathname.endsWith('/hub-editor.css')) continue;
+      for (const rule of sheet.cssRules) {
+        if (rule.cssText.includes('#direction-panel')) {
+          scoped.textContent += rule.cssText.replaceAll('#direction-panel', '#hub-layout-probes .direction-panel') + '\n';
+        }
+      }
+    }
+    stage.append(scoped);
+    const tracks = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/);
+    const columnWidth = parseFloat(tracks[tracks.length - 1]) || panel.getBoundingClientRect().width;
+    stage.style.width = columnWidth + 'px';
+    const probes = directions.map(item => {
+      const probe = document.createElement('div');
+      probe.className = 'direction-panel';
+      probe.dataset.direction = item.number;
+      probe.innerHTML = panelMarkup(item);
+      stage.append(probe);
+      return probe;
+    });
+    grid.append(stage);
+    try {
+      const heights = probes.map(probe => probe.getBoundingClientRect().height);
+      const height = Math.ceil(Math.max(...heights));
+      grid.style.setProperty('--hub-panel-height', height + 'px');
+      grid.dataset.longestDirection = directions[heights.indexOf(Math.max(...heights))].number;
+    } finally {
+      stage.remove();
+    }
+  }
+  function schedulePanelEnvelope() {
+    if (panelMeasureFrame === null) panelMeasureFrame = requestAnimationFrame(measurePanelEnvelope);
+  }
+  window.addEventListener('resize', schedulePanelEnvelope, {passive: true});
+  document.fonts?.ready.then(schedulePanelEnvelope);
+  let lastPanelWidth = 0;
+  const panelWidthObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => {
+    const width = entries[0].contentRect.width;
+    if (Math.abs(width - lastPanelWidth) > .5) {
+      lastPanelWidth = width;
+      schedulePanelEnvelope();
+    }
+  }) : null;
+  panelWidthObserver?.observe(panel);
+  schedulePanelEnvelope();
+
+  function renderPanel(index) {
+    disposeHeadingMotion();
+    disposePanelAppearance();
+    disposeHeadingRule();
+    const item = directions[index];
+    panel.dataset.direction = item.number;
+    panel.innerHTML = panelMarkup(item);
     disposeHeadingMotion = attachHeadingMotion(panel.querySelector(".panel-visual-title h2"));
     disposePanelAppearance = attachPanelAppearance(panel);
     disposeHeadingRule = attachHeadingRule(panel.querySelector(".panel-visual-title"));
@@ -872,6 +948,10 @@ SOFTWARE.
     }
     const toggle = target.closest(".panel-cta--author");
     if (!toggle || !panel.contains(toggle)) return;
+    if (!aboutEnabled) {
+      select(directions.findIndex(item => item.number === "0.2"));
+      return;
+    }
     // Продолжение располагается ПОСЛЕ главного экрана, а не внутри панели:
     // высота ряда навигационной сферы никогда не меняется при раскрытии.
     aboutJourney.hidden = false;
@@ -887,7 +967,7 @@ SOFTWARE.
     panelScrollTimer = null;
     chosen = index;
     turnNavigationTo(index, !animateNavigation);
-    if (directions[index].number !== "0.1") aboutJourney.hidden = true;
+    if (directions[index].number !== "0.1" && aboutJourney) aboutJourney.hidden = true;
     buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
     dots.forEach((dot, i) => dot.classList.toggle("is-selected", i === index));
     dotTargets.forEach((target, i) => target.setAttribute("aria-pressed", String(i === index)));
@@ -977,6 +1057,7 @@ SOFTWARE.
     select(index, true, event.detail?.animate === true);
   });
   function revealFragment() {
+    if (!aboutEnabled) return;
     const id = location.hash.slice(1);
     if (!["about-path", "about-art", "about-thinking"].includes(id)) return;
     select(directions.findIndex(item => item.number === "0.1"), true);
