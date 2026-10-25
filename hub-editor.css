@@ -29,3 +29,10 @@
 .wheel-node[data-direction="0.5"] .wheel-node-name{font-size:12px !important}
 .wheel-node[data-direction="0.6"] .wheel-node-name{font-size:12px !important}
 .wheel-node[data-direction="0.7"] .wheel-node-name{font-size:12px !important}
+#direction-panel[data-direction="0.1"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.2"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.3"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.4"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.5"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.6"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.7"] .panel-context{font-size:8px !important}

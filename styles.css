@@ -43,12 +43,13 @@ p { text-wrap: pretty; }
 
 /* Главный экран остаётся самостоятельным и не меняет геометрию при открытии продолжения. */
 .site-shell {
+  --hub-side-gutter: clamp(32px, 4.3vw, 86px);
   display: flex;
   align-items: stretch;
   max-width: 1920px;
   min-height: 100svh;
   margin: 0 auto;
-  padding: clamp(25px, 4vh, 58px) clamp(32px, 4.3vw, 86px);
+  padding: clamp(25px, 4vh, 58px) var(--hub-side-gutter);
 }
 .hub-grid {
   display: grid;
@@ -93,7 +94,7 @@ p { text-wrap: pretty; }
 .wheel-node[aria-pressed="true"] .wheel-node-number { color: var(--ink); }
 
 /* Три круга задают композицию: навигация, изображение, действие. */
-.direction-panel { min-width: 0; align-self: start; padding-top: clamp(14px, 3.5vh, 39px); transition: opacity .16s ease, transform .16s ease; }
+.direction-panel { --panel-right-air: calc(var(--hub-side-gutter) * .3); padding-right: var(--panel-right-air); min-width: 0; align-self: start; padding-top: clamp(14px, 3.5vh, 39px); transition: opacity .16s ease, transform .16s ease; }
 .direction-panel.is-leaving { opacity: 0; transform: translateY(7px); }
 .panel-visual-row { --photo-column: clamp(210px, 19.5vw, 295px); --photo-title-row-gap: clamp(22px, 2.3vw, 44px); display: grid; grid-template-columns: var(--photo-column) minmax(0, 1fr); align-items: start; gap: var(--photo-title-row-gap); }
 .panel-circle { width: 65.61%; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 50%; background: var(--almost); transform: translateX(-20%); }
@@ -107,7 +108,7 @@ p { text-wrap: pretty; }
 .panel-heading-line { display: block; white-space: nowrap; }
 .panel-description { min-height: 325px; margin-top: clamp(36px, 5vh, 66px); }
 .panel-description-copy { display: flex; flex-direction: column; gap: 0; }
-.panel-description p { max-width: 680px; color: var(--body); }
+.panel-description p { max-width: calc(680px - var(--panel-right-air)); color: var(--body); }
 .panel-description-lead { font-size: clamp(15px, 1.24vw, 18px); line-height: 1.4; margin-bottom: .4em; }
 .panel-description p.panel-description-lead { color: #000; }
 .panel-description-rule { height: 0; margin-bottom: clamp(13px, 1.42vw, 19px); background: none; }
@@ -277,7 +278,7 @@ p { text-wrap: pretty; }
   .wheel-node { width: 132px; }
 }
 @media (max-width: 1130px) {
-  .site-shell { display: block; padding: 30px 24px 64px; }
+  .site-shell { --hub-side-gutter: 24px; display: block; padding: 30px var(--hub-side-gutter) 64px; }
   .hub-grid { grid-template-columns: 1fr; gap: 30px; }
   .wheel { width: min(90%, 585px); }
   .direction-panel { width: min(100%, 720px); margin: 0 auto; padding-top: 0; scroll-margin-top: 20px; }
@@ -290,7 +291,7 @@ p { text-wrap: pretty; }
   .panel-contact-row, .panel-route-row { justify-content: center; }
 }
 @media (max-width: 700px) {
-  .site-shell { padding: 18px 14px 48px; }
+  .site-shell { --hub-side-gutter: 14px; padding: 18px var(--hub-side-gutter) 48px; }
   .hub-grid { gap: 16px; }
   .wheel { width: min(90%, 432px); }
   .wheel-node { width: 104px; min-height: 44px; padding: 3px 0; gap: 2px; }
@@ -324,7 +325,7 @@ p { text-wrap: pretty; }
   .about-art-notes { grid-template-columns: 1fr; }
 }
 @media (max-width: 420px) {
-  .site-shell { padding-inline: 13px; }
+  .site-shell { --hub-side-gutter: 13px; padding-inline: var(--hub-side-gutter); }
   .panel-visual-row { --photo-column: calc((100vw - 26px) * .43); }
   .wheel { width: min(90%, calc(100vw - 28px)); }
   .wheel-node { width: 88px; }
@@ -368,3 +369,8 @@ p { text-wrap: pretty; }
 .panel-visual-title { position: relative; }
 .hub-line { display: block; height: 1px; background: #000; pointer-events: none; }
 .panel-heading-rule { position: absolute; visibility: hidden; }
+
+@media(max-width:1130px){
+  .panel-visual-row { margin-right: calc(-1 * var(--panel-right-air)); }
+  .panel-visual-title { padding-right: var(--panel-right-air); }
+}
