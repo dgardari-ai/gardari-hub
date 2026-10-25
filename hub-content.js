@@ -44,7 +44,7 @@ window.GARDARI_HUB_CONTENT = {
       "imageAlt": "Денис Гардари и Ваня в художественной мастерской",
       "imagePosition": "50% 42%",
       "url": "https://dgardari-ai.github.io/kb-gardari/",
-      "action": "ПЕРЕЙТИ НА САЙТ КОНЦЕПТ БЮРО"
+      "action": "ПЕРЕЙТИ НА САЙТ КБ"
     },
     {
       "number": "0.3",
