@@ -153,6 +153,53 @@ SOFTWARE.
   const photoTone = svg("filter", { id: "hub-warm-mono", "color-interpolation-filters": "sRGB" }, photoDefinitions);
   svg("feColorMatrix", { type: "matrix", values: "0.2250935 0.7572288 0.0764428 0 -0.0323302 0.2104422 0.7079411 0.0714672 0 0.0082152 0.1971864 0.6633476 0.0669655 0 0.0138209 0 0 0 1 0" }, photoTone);
 
+  // Подписи остаются редактируемым short; переносы задаются самими данными.
+  function splitNavigationCaption(short) {
+    const text = String(short ?? "").trim();
+    const explicitLines = text.split(/\r?\n/);
+    if (explicitLines.length > 1) {
+      return [explicitLines[0].trim(), explicitLines.slice(1).join(" ").trim()];
+    }
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 2) return [text, ""];
+    let splitAt = 1;
+    let smallestDifference = Infinity;
+    for (let i = 1; i < words.length; i += 1) {
+      const difference = Math.abs(words.slice(0, i).join(" ").length - words.slice(i).join(" ").length);
+      if (difference < smallestDifference) {
+        smallestDifference = difference;
+        splitAt = i;
+      }
+    }
+    return [words.slice(0, splitAt).join(" "), words.slice(splitAt).join(" ")];
+  }
+
+  function renderNavigationCaption(name, short) {
+    const lines = splitNavigationCaption(short).map(text => {
+      const line = document.createElement("span");
+      line.className = "wheel-node-name-line";
+      line.textContent = text;
+      return line;
+    });
+    name.replaceChildren(lines[0], document.createTextNode("\n"), lines[1]);
+  }
+
+  const orbitLabelNodes = buttons.map(button => button.querySelector(".wheel-node-name"));
+  const orbitLabelScales = orbitLabelNodes.map(() => "1.0000");
+  const orbitLabelHalfWindow = 750 / period;
+
+  function updateOrbitLabelEmphasis() {
+    orbitLabelNodes.forEach((name, i) => {
+      const offset = Math.abs(progress - i / directions.length);
+      const distance = Math.min(offset, 1 - offset);
+      const strength = reducedMotion.matches ? 0 : 1 - smoothstep(distance / orbitLabelHalfWindow);
+      const scale = (1 + .16 * strength).toFixed(4);
+      if (scale === orbitLabelScales[i]) return;
+      name.style.setProperty("--orbit-label-scale", scale);
+      orbitLabelScales[i] = scale;
+    });
+  }
+
   directions.forEach((item, i) => {
     const angle = nodeAngles[i];
     const point = polar(angle, orbitRadius);
@@ -182,8 +229,7 @@ SOFTWARE.
     buttons[i].dataset.direction = item.number;
     buttons[i].querySelector(".wheel-node-number").textContent = item.number;
     const name = buttons[i].querySelector(".wheel-node-name");
-    if (item.short === "Платформа инструментов") name.innerHTML = "Платформа<br>инструментов";
-    else name.textContent = item.short;
+    renderNavigationCaption(name, item.short);
 
   });
 
@@ -599,9 +645,59 @@ SOFTWARE.
     };
   }
 
+  // The hairline follows the font's descender, rather than a guessed panel offset.
+  let disposeHeadingRule = () => {};
+  function attachHeadingRule(title) {
+    const heading = title?.querySelector('h2');
+    const rule = title?.querySelector('.panel-heading-rule');
+    if (!heading || !rule) return () => {};
+    const context = document.createElement('canvas').getContext('2d');
+    let frame = null, destroyed = false;
+    function measure() {
+      frame = null;
+      if (destroyed || !title.isConnected) return;
+      const line = heading.querySelector('.panel-heading-line:last-child');
+      if (!line) return;
+      const style = getComputedStyle(heading);
+      context.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+      let text = line.textContent;
+      if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase('ru');
+      else if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('ru');
+      const descent = Math.max(context.measureText(text).actualBoundingBoxDescent,
+        context.measureText('р').actualBoundingBoxDescent, 0);
+      const marker = document.createElement('span');
+      marker.setAttribute('aria-hidden', 'true');
+      marker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
+      line.append(marker);
+      const baseline = marker.getBoundingClientRect().top;
+      marker.remove();
+      const titleBox = title.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
+      const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
+      rule.style.left = (headingBox.left - titleBox.left) + 'px';
+      rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - .5) + 'px';
+      // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
+      rule.style.width = Math.max(0, document.documentElement.clientWidth - headingBox.left) + 'px';
+      rule.style.visibility = 'visible';
+    }
+    function schedule() {
+      if (!destroyed && frame === null) frame = requestAnimationFrame(measure);
+    }
+    window.addEventListener('resize', schedule, {passive:true});
+    reducedMotion.addEventListener('change', schedule);
+    if (document.fonts?.status !== 'loaded') document.fonts?.ready.then(schedule);
+    measure();
+    return () => {
+      destroyed = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      window.removeEventListener('resize', schedule);
+      reducedMotion.removeEventListener('change', schedule);
+    };
+  }
+
   function renderPanel(index) {
     disposeHeadingMotion();
     disposePanelAppearance();
+    disposeHeadingRule();
     const item = directions[index];
     panel.dataset.direction = item.number;
     const monochrome = ["0.2", "0.4", "0.6", "0.7"].includes(item.number);
@@ -613,6 +709,7 @@ SOFTWARE.
         '<div class="panel-visual-title">' +
           '<div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span>' + escapeHtml(item.category) + '</span></div>' +
           '<h2>' + heading + '</h2>' +
+          '<span class="panel-heading-rule" aria-hidden="true"></span>' +
           '<span class="panel-info-eyebrow">' + escapeHtml(item.subtitle) + '</span></div>' +
       '</div>';
     const more = item.more ? item.more.map(paragraph => '<p>' + escapeHtml(paragraph) + '</p>').join('') : '';
@@ -638,6 +735,7 @@ SOFTWARE.
     }
     disposeHeadingMotion = attachHeadingMotion(panel.querySelector(".panel-visual-title h2"));
     disposePanelAppearance = attachPanelAppearance(panel);
+    disposeHeadingRule = attachHeadingRule(panel.querySelector(".panel-visual-title"));
   }
 
   panel.addEventListener("click", event => {
@@ -694,6 +792,7 @@ SOFTWARE.
     orbiter.setAttribute("cy", point.y);
     halo.setAttribute("cx", point.x);
     halo.setAttribute("cy", point.y);
+    updateOrbitLabelEmphasis();
   }
   function animate(time) {
     frameId = null;
@@ -734,6 +833,7 @@ SOFTWARE.
     else if (wheelVisible && !reducedMotion.matches) beginOrbit();
   });
   reducedMotion.addEventListener("change", () => {
+    updateOrbitLabelEmphasis();
     if (reducedMotion.matches) endOrbit();
     else if (wheelVisible && !document.hidden) beginOrbit();
   });
