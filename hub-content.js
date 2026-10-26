@@ -261,7 +261,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d01-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -337,7 +337,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d02-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -347,7 +347,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d03-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -357,7 +357,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d04-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -367,7 +367,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d05-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -377,7 +377,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d06-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {
@@ -387,7 +387,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d07-text": {
       "all": {
-        "font-size": "20px",
+        "font-size": "19px",
         "line-height": "24px"
       },
       "mobile": {

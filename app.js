@@ -1463,6 +1463,33 @@ SOFTWARE.
       word.parentElement.style.setProperty('--word-fill-height', height + 'px');
       word.parentElement.style.setProperty('--word-fill-top', Math.max(0, top) + 'px');
     });
+    const lead = synthesis.querySelector('.panel-description-lead');
+    if (!lead) return;
+    const clearFit = () => {
+      lead.style.removeProperty('line-height');
+      for (const name of ['heightFit', 'heightFitLines', 'heightFitTarget', 'heightFitInk', 'heightFitMode', 'heightFitMin']) delete lead.dataset[name];
+    };
+    if (window.innerWidth <= 700) { clearFit(); return; }
+    const fullCopy = lead.querySelector('.intro-type-ghost') || lead;
+    const range = document.createRange(); range.selectNodeContents(fullCopy);
+    const tops = [];
+    for (const rect of range.getClientRects()) {
+      if (rect.width > 0 && rect.height > 0 && !tops.some(top => Math.abs(top - rect.top) < .5)) tops.push(rect.top);
+    }
+    if (!tops.length) { clearFit(); return; }
+    const targetHeight = list.getBoundingClientRect().height;
+    if (!Number.isFinite(targetHeight) || targetHeight <= 0) { clearFit(); return; }
+    const leadStyle = getComputedStyle(lead);
+    ink.font = [leadStyle.fontStyle, leadStyle.fontWeight, leadStyle.fontSize, leadStyle.fontFamily].join(' ');
+    const bounds = ink.measureText(fullCopy.textContent);
+    const inkHeight = (bounds.actualBoundingBoxAscent || 0) + (bounds.actualBoundingBoxDescent || 0);
+    const minimum = Math.max((parseFloat(leadStyle.fontSize) || 19) * 1.02, inkHeight + 1.5);
+    const ideal = targetHeight / tops.length;
+    const fitted = Math.max(ideal, minimum);
+    lead.style.setProperty('line-height', fitted.toFixed(6) + 'px', 'important');
+    lead.dataset.heightFit = 'desktop'; lead.dataset.heightFitLines = String(tops.length);
+    lead.dataset.heightFitTarget = targetHeight.toFixed(6); lead.dataset.heightFitInk = String(inkHeight);
+    lead.dataset.heightFitMin = String(minimum); lead.dataset.heightFitMode = ideal >= minimum ? 'exact' : 'readable';
   }
 
   // The hairline follows the font's descender, rather than a guessed panel offset.
@@ -1646,6 +1673,7 @@ SOFTWARE.
     panel.dataset.direction = item.number;
     panel.innerHTML = panelMarkup(item);
     disposeHeadingMotion = attachHeadingMotion(panel.querySelector(".panel-visual-title h2"));
+    alignAuthorComposition(panel);
     disposePanelAppearance = attachPanelAppearance(panel);
     disposeHeadingRule = attachHeadingRule(panel.querySelector(".panel-visual-title"));
   }

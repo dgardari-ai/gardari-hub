@@ -472,3 +472,7 @@ p { text-wrap: pretty; }
 }
 
 @media(max-width:700px){.wheel-particles,.wheel-geometry{transform:scale(.90);transform-origin:center}}
+
+@media (min-width: 701px) {
+  .panel-description .author-composition { gap: var(--paragraph-gap); }
+}
