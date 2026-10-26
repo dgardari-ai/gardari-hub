@@ -25,6 +25,41 @@
   --ease: cubic-bezier(.22,.61,.36,1);
   color-scheme: light;
 }
+
+/* Проба 0.1: исходные абзацы, направления и перемещённая крупная фраза. */
+.panel-description .author-composition { gap: 24px; max-width: calc(680px - var(--panel-right-air)); }
+.author-opening { gap: var(--paragraph-gap); }
+.author-synthesis {
+  display: grid;
+  grid-template-columns: var(--author-axis-column, minmax(max-content, .94fr)) minmax(0, 1fr);
+  column-gap: clamp(10px, 1.3vw, 23px);
+  align-items: start;
+}
+.author-disciplines {
+  margin: 0; padding: 0; list-style: none;
+  font-family: var(--author-display-font, Arial, Helvetica, sans-serif);
+  font-weight: var(--author-display-weight, 700);
+  font-size: clamp(12px, calc(var(--author-axis-column, 150px) * .14), 22px);
+  line-height: 1.02;
+  letter-spacing: -.055em;
+  text-align: left;
+  text-transform: lowercase;
+  color: var(--ink);
+  -webkit-text-stroke: calc(1em * var(--author-display-stroke, .03)) currentColor;
+}
+.author-disciplines li { display: flex; align-items: flex-start; gap: .18em; white-space: nowrap; }
+.author-discipline-word { flex: 0 0 auto; }
+.author-discipline-fill {
+  flex: 1 1 0; min-width: 0;
+  height: var(--word-fill-height, .75em);
+  margin-top: var(--word-fill-top, .2em);
+  background: var(--accent);
+}
+.author-synthesis .panel-description-lead { margin-bottom: 0; min-width: 0; }
+@media(max-width:560px) {
+  .panel-description .author-composition { gap: 22px; }
+  .author-synthesis { row-gap: 18px; }
+}
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.5 Arial, Helvetica, sans-serif; letter-spacing: -.015em; -webkit-font-smoothing: antialiased; }

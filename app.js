@@ -1,5 +1,4 @@
-/* Хаб Гардари 2.0 · принятый яркий круг №3.
- * Движки встроены в app.js для точной отмены через Редактор ВМГ. */
+/* Gardari circle: isolated idle-motion correction, not an accepted release. */
 /* Independent rim impulse + coasting, with the accepted soft bulk motor.
  * Advanced only by the existing particle-rendering loop. No timers or rAF. */
 (() => {
@@ -14,6 +13,7 @@
   const FAST_TAU = .28, SLOW_TAU = 1.35, RIM_SPEED_LIMIT = 3.4, STOP_SPEED = 1e-4;
   const bands = new Float64Array(BANDS);
   const bulkBands = new Float64Array(BANDS), rimBands = new Float64Array(BANDS);
+  const previousBulkBands = new Float64Array(BANDS), previousRimBands = new Float64Array(BANDS);
   const historyTime = new Float64Array(HISTORY);
   const historyAngle = new Float64Array(HISTORY);
   const historyRimAngle = new Float64Array(HISTORY);
@@ -61,6 +61,7 @@
     historyHead = historyCount = 0;
     historyTime.fill(0); historyAngle.fill(0); historyRimAngle.fill(0);
     pushHistory(); rebuildBands();
+    previousBulkBands.set(bulkBands); previousRimBands.set(rimBands);
   }
   function rimVelocity() { return state.rimFastVelocity + state.rimSlowVelocity; }
   function rimRemaining() { return state.rimFastVelocity * FAST_TAU + state.rimSlowVelocity * SLOW_TAU; }
@@ -117,8 +118,22 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) settle(); });
   media.addEventListener('change', () => { if (media.matches) settle(); });
 
+  function sampleBands(projectedRadius, depthFactor, bulkBands, rimBands) {
+      const radius = clamp(projectedRadius, 0, 177), normalized = radius / 177;
+      // Keep a subtle depth-dependent propagation offset inside, but exactly
+      // zero delay at R177: its reported angle is the actual rim angle.
+      const radial = (normalized - .03 * (1 - clamp(depthFactor, 0, 1)) * normalized * (1 - normalized)) * (BANDS - 1);
+      const index = Math.min(BANDS - 2, Math.floor(radial)), fraction = radial - index;
+      const bulkAngle = bulkBands[index] + (bulkBands[index + 1] - bulkBands[index]) * fraction;
+      const rimAngle = rimBands[index] + (rimBands[index + 1] - rimBands[index]) * fraction;
+      const rimWeight = smooth((radius - 130) / 47);
+      return bulkAngle * (1 - rimWeight) + rimAngle * rimWeight;
+  }
+
   window.HubFieldNavigation = {
     advance(dt) {
+      // Snapshot before the step, including zero-length and interrupted steps.
+      previousBulkBands.set(bulkBands); previousRimBands.set(rimBands);
       if (!Number.isFinite(dt) || dt <= 0) return state;
       dt = Math.min(dt, 1 / 30);
       if (media.matches || document.hidden) { settle(); return state; }
@@ -144,18 +159,16 @@
       return state;
     },
     sample(projectedRadius, depthFactor = .5) {
-      const radius = clamp(projectedRadius, 0, 177), normalized = radius / 177;
-      // Keep a subtle depth-dependent propagation offset inside, but exactly
-      // zero delay at R177: its reported angle is the actual rim angle.
-      const radial = (normalized - .03 * (1 - clamp(depthFactor, 0, 1)) * normalized * (1 - normalized)) * (BANDS - 1);
-      const index = Math.min(BANDS - 2, Math.floor(radial)), fraction = radial - index;
-      const bulkAngle = bulkBands[index] + (bulkBands[index + 1] - bulkBands[index]) * fraction;
-      const rimAngle = rimBands[index] + (rimBands[index + 1] - rimBands[index]) * fraction;
-      const rimWeight = smooth((radius - 130) / 47);
-      return bulkAngle * (1 - rimWeight) + rimAngle * rimWeight;
+      return sampleBands(projectedRadius, depthFactor, bulkBands, rimBands);
+    },
+    sampleDelta(projectedRadius, depthFactor = .5) {
+      // Both samples use the same current material coordinates: motion through
+      // a previously twisted field cannot manufacture new angular velocity.
+      return sampleBands(projectedRadius, depthFactor, bulkBands, rimBands)
+        - sampleBands(projectedRadius, depthFactor, previousBulkBands, previousRimBands);
     },
     reset, settle,
-    getState: () => ({ ...state, rimVelocity: rimVelocity(), rimRemaining: rimRemaining(),
+    getState: () => ({ ...state, transport: 'incremental-angle', rimVelocity: rimVelocity(), rimRemaining: rimRemaining(),
       middleAngle: bands[(BANDS - 1) / 2], coreAngle: bands[0], propagationSeconds: PROPAGATION })
   };
   clearHistory();
@@ -175,6 +188,7 @@
   const peripheralPhase = new Float32Array(PERIPHERAL);
   const x = new Float32Array(COUNT), y = new Float32Array(COUNT), z = new Float32Array(COUNT);
   const homeX = new Float32Array(COUNT), homeY = new Float32Array(COUNT), homeZ = new Float32Array(COUNT);
+  const particleTurn = new Float64Array(COUNT);
   const offsetX = new Float32Array(CORE), offsetY = new Float32Array(CORE), offsetZ = new Float32Array(CORE);
   const velocityX = new Float32Array(CORE), velocityY = new Float32Array(CORE), velocityZ = new Float32Array(CORE);
   const size = new Float32Array(COUNT), sprite = new Uint16Array(COUNT);
@@ -234,6 +248,7 @@
 
   function seedField() {
     seed = 817041; maxRadius = 0; accentCount = cyrillicAccentCount = 0;
+    particleTurn.fill(0);
     coolYellowCount = warmYellowCount = 0;
     for (let i = 0; i < COUNT; i++) {
       colorIndex[i] = particleColor(i);
@@ -367,8 +382,13 @@
       // must also be called when nav.angle/velocity have already reached zero.
       const projectedRadius = Math.hypot(a, b) * 800 / (800 - c);
       const depthFactor = clamp((c + BOUND) / (2 * BOUND), 0, 1);
-      const turn = window.HubFieldNavigation?.sample
-        ? window.HubFieldNavigation.sample(projectedRadius, depthFactor) : nav.angle;
+      const deltaTurn = window.HubFieldNavigation?.sampleDelta
+        ? window.HubFieldNavigation.sampleDelta(projectedRadius, depthFactor) : 0;
+      if (deltaTurn !== 0) {
+        const fullTurn = Math.PI * 2;
+        particleTurn[i] = ((particleTurn[i] + deltaTurn + Math.PI) % fullTurn + fullTurn) % fullTurn - Math.PI;
+      }
+      const turn = particleTurn[i];
       if (Math.abs(turn) > 1e-8) {
         const turnCos = Math.cos(turn), turnSin = Math.sin(turn);
         const turnedX = a * turnCos - b * turnSin;
@@ -559,6 +579,7 @@
   function render({ canvas, ctx, time, reducedMotion = false }) {
     if (!canvas || !ctx || !Number.isFinite(time)) return;
     const started = performance.now(); canvasRef = canvas; bindPointer();
+    canvas.dataset.fieldTransport = 'incremental-angle';
     canvas.dataset.fieldColorCount = String(fieldPalette.length);
     canvas.dataset.fieldAccentCount = String(accentCount);
     canvas.dataset.fieldCyrillicAccentCount = String(cyrillicAccentCount);
@@ -610,7 +631,7 @@
     },
     getStats() {
       return {
-        implementation: 'circle-color-emphasis-03', particles: COUNT, coreParticles: CORE, veilParticles: VEIL,
+        implementation: 'circle-color-emphasis-03', navigationTransport: 'incremental-angle', particles: COUNT, coreParticles: CORE, veilParticles: VEIL,
         accentParticles: accentCount, cyrillicAccentParticles: cyrillicAccentCount,
         coolYellowParticles: coolYellowCount, warmYellowParticles: warmYellowCount,
         frames: frame, simulationSeconds: +simTime.toFixed(2), fps: +(1000/frameDuration).toFixed(1), renderMilliseconds: +renderCost.toFixed(2),
@@ -621,7 +642,7 @@
   };
 })();
 
-window.HubFluidField.setOptions({flow:1.8, interaction:1, veil:0.3});
+window.HubFluidField.setOptions({flow:0.9, interaction:1, veil:0.3});
 
 /* Paper-fold behavior adapted from React Bits FoldText (David Haz).
 MIT + Commons Clause License Condition v1.0
@@ -660,6 +681,7 @@ SOFTWARE.
 
   // Единая конфигурация направлений. Неопубликованные адреса — пилотные маршруты.
   const directions = window.GARDARI_HUB_CONTENT.directions;
+  const directionComposition = window.GARDARI_HUB_CONTENT.features?.directionComposition === true;
 
   const ns = "http://www.w3.org/2000/svg";
   const wheel = document.getElementById("gardari-wheel");
@@ -1130,7 +1152,7 @@ SOFTWARE.
     const cover = root.querySelector('.photo-reveal-cover');
     const image = stage?.querySelector('img');
     const lead = root.querySelector('.panel-description-lead');
-    const supporting = Array.from(root.querySelectorAll('.panel-description-support p'));
+    const supporting = Array.from(root.querySelectorAll('.panel-description-support p, .author-disciplines'));
     if (!stage || !cover || !image || !lead) return () => {};
     if (reducedMotion.matches) {
       root.dataset.entryState = 'still';lead.dataset.introState = 'complete';
@@ -1398,6 +1420,51 @@ SOFTWARE.
     };
   }
 
+  // The author split shares the actual heading axis at every viewport width.
+  function alignAuthorComposition(scope) {
+    const heading = scope?.querySelector('.panel-visual-title h2');
+    const synthesis = scope?.querySelector('.author-synthesis');
+    if (!heading || !synthesis) return;
+    const style = getComputedStyle(heading);
+    const gap = parseFloat(getComputedStyle(synthesis).columnGap) || 0;
+    const column = Math.max(0, heading.getBoundingClientRect().left - synthesis.getBoundingClientRect().left - gap);
+    const value = column.toFixed(4) + 'px';
+    if (scope.style.getPropertyValue('--author-axis-column') !== value) scope.style.setProperty('--author-axis-column', value);
+    scope.style.setProperty('--author-display-font', style.fontFamily);
+    scope.style.setProperty('--author-display-weight', style.fontWeight);
+    scope.style.setProperty('--author-display-stroke', String((parseFloat(style.webkitTextStrokeWidth) || 0) / (parseFloat(style.fontSize) || 1)));
+    // Fill each word's remaining row with the same yellow as the navigation.
+    const list = synthesis.querySelector('.author-disciplines');
+    list.style.removeProperty('font-size');
+    let wordStyle = getComputedStyle(list);
+    const ink = document.createElement('canvas').getContext('2d');
+    const setInkFont = () => { ink.font = [wordStyle.fontStyle, wordStyle.fontWeight, wordStyle.fontSize, wordStyle.fontFamily].join(' '); };
+    setInkFont();
+    const fontSize = parseFloat(wordStyle.fontSize) || 22;
+    const tracking = parseFloat(wordStyle.letterSpacing) || 0;
+    const words = directions.flatMap(item => item.disciplines || []);
+    const longest = Math.max(1, ...words.map(word => ink.measureText(word).width + tracking * word.length));
+    const budget = Math.max(1, list.getBoundingClientRect().width - fontSize * .18 - 4);
+    if (longest > budget) {
+      list.style.fontSize = Math.max(10, fontSize * budget / longest).toFixed(4) + 'px';
+      wordStyle = getComputedStyle(list); setInkFont();
+    }
+    const wordStroke = parseFloat(wordStyle.webkitTextStrokeWidth) || 0;
+    const reference = ink.measureText('семиотика');
+    const ascent = reference.actualBoundingBoxAscent || parseFloat(wordStyle.fontSize) * .54;
+    const height = ascent + (reference.actualBoundingBoxDescent || 0) + wordStroke;
+    list.querySelectorAll('.author-discipline-word').forEach(word => {
+      const marker = document.createElement('span');
+      marker.setAttribute('aria-hidden', 'true');
+      marker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
+      word.append(marker);
+      const top = marker.getBoundingClientRect().top - word.getBoundingClientRect().top - ascent - wordStroke / 2;
+      marker.remove();
+      word.parentElement.style.setProperty('--word-fill-height', height + 'px');
+      word.parentElement.style.setProperty('--word-fill-top', Math.max(0, top) + 'px');
+    });
+  }
+
   // The hairline follows the font's descender, rather than a guessed panel offset.
   let disposeHeadingRule = () => {};
   function attachHeadingRule(title) {
@@ -1426,6 +1493,7 @@ SOFTWARE.
       const labelAxis = headingBox.left;
       alignOpticalLeft(title.querySelector('.panel-context'), labelAxis, context);
       alignOpticalLeft(title.querySelector('.panel-info-eyebrow'), labelAxis, context);
+      alignAuthorComposition(title.closest('.direction-panel'));
       rule.style.left = (headingBox.left - titleBox.left) + 'px';
       rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - rule.getBoundingClientRect().height / 2) + 'px';
       // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
@@ -1452,6 +1520,20 @@ SOFTWARE.
     };
   }
 
+  function directionCompositionMarkup(item) {
+    const sid = 'd' + item.number.replace('.', '');
+    const paragraph = (key, text, className = '') => '<p' + (className ? ' class="' + className + '"' : '') +
+      ' data-hub-copy="' + key + '" data-hub-text="' + sid + '-' + key + '">' + escapeHtml(text || '') + '</p>';
+    return '<div class="panel-description-copy author-composition">' +
+      '<div class="panel-description-support author-opening">' + paragraph('detail', item.detail) + paragraph('more0', item.more?.[0]) + '</div>' +
+      '<div class="author-synthesis">' +
+        '<ul class="author-disciplines" data-hub-copy="disciplines" aria-label="Направления">' +
+          (item.disciplines || []).map(word => '<li><span class="author-discipline-word">' + escapeHtml(word) + '</span><span class="author-discipline-fill" aria-hidden="true"></span></li>').join('') + '</ul>' +
+        paragraph('text', item.text, 'panel-description-lead') +
+      '</div>' +
+      '<div class="panel-description-support author-closing">' + paragraph('more1', item.more?.[1]) + '</div></div>';
+  }
+
   function panelMarkup(item) {
     const monochrome = ["0.2", "0.4", "0.6", "0.7"].includes(item.number);
     const photoFilter = monochrome ? ";filter:url(#hub-warm-mono)" + (item.number === "0.2" ? " brightness(1.04)" : "") : "";
@@ -1466,10 +1548,11 @@ SOFTWARE.
           '<span class="panel-info-eyebrow">' + escapeHtml(item.subtitle) + '</span></div>' +
       '</div>';
     const more = item.more ? item.more.map(paragraph => '<p>' + escapeHtml(paragraph) + '</p>').join('') : '';
-    const copy = '<div class="panel-description-copy">' +
+    const legacyCopy = '<div class="panel-description-copy">' +
       '<p class="panel-description-lead">' + escapeHtml(item.text) + '</p>' +
       '<div class="panel-description-rule" aria-hidden="true"></div>' +
       '<div class="panel-description-support"><p>' + escapeHtml(item.detail) + '</p>' + more + '</div></div>';
+    const copy = directionComposition ? directionCompositionMarkup(item) : legacyCopy;
     if (item.number === "0.1") {
       const authorButtonAttributes = aboutEnabled
         ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
@@ -1530,6 +1613,7 @@ SOFTWARE.
     });
     grid.append(stage);
     try {
+      probes.forEach(alignAuthorComposition);
       const heights = probes.map(probe => probe.getBoundingClientRect().height);
       const height = Math.ceil(Math.max(...heights));
       grid.style.setProperty('--hub-panel-height', height + 'px');
