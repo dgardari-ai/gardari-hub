@@ -1152,7 +1152,7 @@ SOFTWARE.
     const cover = root.querySelector('.photo-reveal-cover');
     const image = stage?.querySelector('img');
     const lead = root.querySelector('.panel-description-lead');
-    const supporting = Array.from(root.querySelectorAll('.panel-description-support p, .author-disciplines'));
+    const supporting = Array.from(root.querySelectorAll('.panel-description-support p'));
     if (!stage || !cover || !image || !lead) return () => {};
     if (reducedMotion.matches) {
       root.dataset.entryState = 'still';lead.dataset.introState = 'complete';
@@ -1420,6 +1420,167 @@ SOFTWARE.
     };
   }
 
+  // The word list reuses the title's paper-fold kinetics with row-local timing.
+  let disposeWordBlockMotion = () => {};
+  function attachWordBlockMotion(scope) {
+    const list = scope?.querySelector('.author-disciplines[data-hub-copy="disciplines"]');
+    if (!list) return () => {};
+    const rows = Array.from(list.children).map(row => {
+      const word = row.querySelector('.author-discipline-word');
+      const fill = row.querySelector('.author-discipline-fill');
+      return word && fill ? {row, word, fill, text:word.textContent,
+        fillStyles:['opacity','transform','--word-fold-crease'].map(name=>[name,fill.style.getPropertyValue(name),fill.style.getPropertyPriority(name)]),
+        label:row.getAttribute('aria-label'), width:word.style.getPropertyValue('width'),
+        widthPriority:word.style.getPropertyPriority('width')} : null;
+    }).filter(Boolean);
+    if (!rows.length) return () => {};
+    let pieces = [], frame = null, resizeFrame = null, pointer = null;
+    let start = performance.now(), lastFrame = start, entrance = true, destroyed = false;
+    let building = false, measuredSignature = '';
+    const clamp01 = value => Math.max(0, Math.min(1, value));
+    const notify = () => window.dispatchEvent(new CustomEvent('hub:word-fold-frame', {
+      detail:{number:scope.dataset.direction, state:list.dataset.wordFoldState}
+    }));
+    const signature = () => {
+      const style = getComputedStyle(list), box = list.getBoundingClientRect();
+      return [box.width.toFixed(3),style.fontFamily,style.fontSize,style.fontWeight,
+        style.lineHeight,style.letterSpacing,style.webkitTextStrokeWidth].join('|');
+    };
+    function restoreNative() {
+      rows.forEach(item => {
+        item.word.textContent = item.text;
+        item.fillStyles.forEach(([name,value,priority])=>{
+          if(value)item.fill.style.setProperty(name,value,priority);
+          else item.fill.style.removeProperty(name);
+        });
+        if (item.width) item.word.style.setProperty('width',item.width,item.widthPriority);
+        else item.word.style.removeProperty('width');
+        if (item.label === null) item.row.removeAttribute('aria-label');
+        else item.row.setAttribute('aria-label',item.label);
+      });
+      list.classList.remove('word-fold-ready'); pieces = [];
+    }
+    function draw(time) {
+      frame = null;
+      if (destroyed || !list.isConnected) return;
+      if (reducedMotion.matches) {build(false);return;}
+      const step = Math.min(64, Math.max(0,time-lastFrame))/1000;
+      lastFrame = time;
+      const box = list.getBoundingClientRect();
+      let moving = false, opening = false, folded = false;
+      pieces.forEach(piece => {
+        const t = entrance ? clamp01((time-start-piece.delay)/650) : 1;
+        const progress = 1-Math.pow(1-t,4);
+        if (t < 1) {moving=true;opening=true;}
+        // A solid fill is one sheet; its nearest horizontal point keeps its
+        // whole width responsive to the same 140px proximity as a title glyph.
+        const x = box.left+piece.x;
+        const hitX = pointer && piece.fill
+          ? Math.max(x-piece.width/2,Math.min(x+piece.width/2,pointer.x)) : x;
+        const distance = pointer ? Math.hypot(hitX-pointer.x,box.top+piece.y-pointer.y)/140 : 1;
+        const aim = distance < 1 ? 1-distance*distance*(3-2*distance) : 0;
+        const rate = aim > piece.hover ? 14 : 6;
+        piece.hover += (aim-piece.hover)*(1-Math.exp(-rate*step));
+        if (Math.abs(aim-piece.hover) > .001) moving=true;
+        else piece.hover=aim;
+        const tilt = piece.hover*45;
+        if (tilt > .05) folded=true;
+        piece.node.style.setProperty('transform',(piece.fill?'perspective(700px) ':'')+'rotateX('+(-((1-progress)*92+tilt))+'deg)');
+        piece.node.style.setProperty('opacity',String(progress));
+        piece.node.style.setProperty('--word-fold-crease',String(.55*clamp01(1-progress+tilt/90)));
+      });
+      list.dataset.wordFoldState = opening ? 'entering' : folded ? 'hover' : 'idle';
+      notify();
+      if (moving) frame=requestAnimationFrame(draw);
+    }
+    function schedule() {
+      if (!destroyed && !reducedMotion.matches && frame === null) {
+        lastFrame=performance.now();frame=requestAnimationFrame(draw);
+      }
+    }
+    function build(play) {
+      if (destroyed || !list.isConnected) return;
+      building=true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame=null;restoreNative();
+      // Native text is restored before the accepted sizing/height-fit pass.
+      alignAuthorComposition(scope);
+      if (reducedMotion.matches) {
+        pointer=null;entrance=false;list.dataset.wordFoldState='still';
+        list.dataset.wordFoldDuration='0';list.dataset.wordFoldPieceCount='0';
+        measuredSignature=signature();building=false;notify();return;
+      }
+      rows.forEach((item,rowIndex) => {
+        const textNode=item.word.firstChild, wordBox=item.word.getBoundingClientRect();
+        if (!textNode || !item.text) return;
+        const glyphs=typeof Intl.Segmenter === 'function'
+          ? Array.from(new Intl.Segmenter('ru',{granularity:'grapheme'}).segment(item.text),part=>({text:part.segment,offset:part.index}))
+          : Array.from(item.text).reduce((items,text)=>{items.push({text,offset:items.reduce((sum,part)=>sum+part.text.length,0)});return items;},[]);
+        const ranges=glyphs.map(glyph=>{
+          const range=document.createRange();range.setStart(textNode,glyph.offset);range.setEnd(textNode,glyph.offset+glyph.text.length);
+          return range.getBoundingClientRect();
+        });
+        if (ranges.some((rect,index)=>index && rect.left < ranges[index-1].left)) return;
+        const fragment=document.createDocumentFragment();
+        glyphs.forEach((glyph,charIndex)=>{
+          const segment=document.createElement('span'), piece=document.createElement('span');
+          segment.className='word-fold-segment';segment.setAttribute('aria-hidden','true');
+          segment.style.width=Math.max(0,(ranges[charIndex+1]?.left ?? ranges[charIndex].right)-ranges[charIndex].left)+'px';
+          piece.className='word-fold-piece';piece.textContent=glyph.text;piece.dataset.foldText=glyph.text;
+          segment.append(piece);fragment.append(segment);
+          pieces.push({node:piece,segment,hover:0,x:0,y:0,width:0,fill:false,delay:rowIndex*45+charIndex*45});
+        });
+        item.row.setAttribute('aria-label',item.text);
+        item.word.replaceChildren(fragment);
+        // Keep the existing flex width and fill endpoint independent of glyph splitting.
+        item.word.style.width=wordBox.width+'px';
+        pieces.push({node:item.fill,segment:item.fill,hover:0,x:0,y:0,width:0,fill:true,delay:rowIndex*45+glyphs.length*45});
+      });
+      list.classList.add('word-fold-ready');
+      const maximum=Math.max(0,...pieces.map(piece=>piece.delay));
+      const staggerScale=maximum>850 ? 850/maximum : 1;
+      const box=list.getBoundingClientRect();
+      pieces.forEach(piece=>{
+        piece.delay*=staggerScale;
+        const rect=piece.segment.getBoundingClientRect();
+        piece.x=rect.left-box.left+rect.width/2;piece.y=rect.top-box.top+rect.height/2;piece.width=rect.width;
+        piece.node.style.setProperty('opacity',play?'0':'1');
+        piece.node.style.setProperty('transform',(piece.fill?'perspective(700px) ':'')+(play?'rotateX(-92deg)':'rotateX(0deg)'));
+      });
+      entrance=play;start=performance.now();lastFrame=start;
+      list.dataset.wordFoldState=play?'entering':'idle';
+      list.dataset.wordFoldDuration=String(650+maximum*staggerScale);
+      list.dataset.wordFoldPieceCount=String(pieces.length);
+      measuredSignature=signature();building=false;notify();schedule();
+    }
+    function rebuild() {
+      if (destroyed || building || resizeFrame !== null) return;
+      resizeFrame=requestAnimationFrame(()=>{resizeFrame=null;build(false);});
+    }
+    const move=event=>{if(event.pointerType==='touch')return;pointer={x:event.clientX,y:event.clientY};schedule();};
+    const leave=()=>{pointer=null;schedule();};
+    const scroll=()=>{if(pointer)schedule();};
+    const changed=()=>{if(!destroyed && !building && signature()!==measuredSignature)rebuild();};
+    list.addEventListener('pointermove',move,{passive:true});list.addEventListener('pointerleave',leave);
+    window.addEventListener('resize',rebuild,{passive:true});window.addEventListener('scroll',scroll,{passive:true,capture:true});
+    reducedMotion.addEventListener('change',rebuild);
+    build(true);
+    const observer=typeof ResizeObserver==='function'?new ResizeObserver(changed):null;
+    observer?.observe(list);
+    const styleObserver=typeof MutationObserver==='function'?new MutationObserver(changed):null;
+    styleObserver?.observe(scope,{attributes:true,attributeFilter:['style']});
+    styleObserver?.observe(list,{attributes:true,attributeFilter:['style']});
+    if(document.fonts?.status!=='loaded')document.fonts?.ready.then(()=>{if(!destroyed)rebuild();});
+    return ()=>{
+      destroyed=true;if(frame!==null)cancelAnimationFrame(frame);if(resizeFrame!==null)cancelAnimationFrame(resizeFrame);
+      observer?.disconnect();styleObserver?.disconnect();
+      list.removeEventListener('pointermove',move);list.removeEventListener('pointerleave',leave);
+      window.removeEventListener('resize',rebuild);window.removeEventListener('scroll',scroll,{capture:true});
+      reducedMotion.removeEventListener('change',rebuild);restoreNative();
+      for(const key of ['wordFoldState','wordFoldDuration','wordFoldPieceCount'])delete list.dataset[key];
+    };
+  }
+
   // The author split shares the actual heading axis at every viewport width.
   function alignAuthorComposition(scope) {
     const heading = scope?.querySelector('.panel-visual-title h2');
@@ -1666,6 +1827,7 @@ SOFTWARE.
   schedulePanelEnvelope();
 
   function renderPanel(index) {
+    disposeWordBlockMotion();
     disposeHeadingMotion();
     disposePanelAppearance();
     disposeHeadingRule();
@@ -1676,6 +1838,7 @@ SOFTWARE.
     alignAuthorComposition(panel);
     disposePanelAppearance = attachPanelAppearance(panel);
     disposeHeadingRule = attachHeadingRule(panel.querySelector(".panel-visual-title"));
+    disposeWordBlockMotion = attachWordBlockMotion(panel);
   }
 
   panel.addEventListener("click", event => {

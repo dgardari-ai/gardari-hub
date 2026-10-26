@@ -476,3 +476,12 @@ p { text-wrap: pretty; }
 @media (min-width: 701px) {
   .panel-description .author-composition { gap: var(--paragraph-gap); }
 }
+
+
+/* Word blocks share the header's paper folds; existing outer row geometry stays native. */
+.author-disciplines .word-fold-segment{display:inline-block;vertical-align:baseline;perspective:700px;white-space:pre;line-height:inherit}
+.author-disciplines .word-fold-piece{position:relative;display:inline-block;line-height:inherit;white-space:pre;transform-origin:50% 0%;backface-visibility:hidden}
+.author-disciplines .word-fold-piece::after{content:attr(data-fold-text);position:absolute;inset:0;pointer-events:none;color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.22) 42%,rgba(255,255,255,.26));-webkit-background-clip:text;background-clip:text;opacity:var(--word-fold-crease,0)}
+.author-disciplines.word-fold-ready .author-discipline-fill{position:relative;transform-origin:50% 0%;backface-visibility:hidden}
+.author-disciplines.word-fold-ready .author-discipline-fill::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.22) 42%,rgba(255,255,255,.26));opacity:var(--word-fold-crease,0)}
+@media(prefers-reduced-motion:reduce){.author-disciplines .word-fold-piece,.author-disciplines.word-fold-ready .author-discipline-fill{transform:none!important;opacity:1!important}.author-disciplines .word-fold-piece::after,.author-disciplines.word-fold-ready .author-discipline-fill::after{opacity:0!important}}
