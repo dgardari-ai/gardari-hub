@@ -1581,8 +1581,26 @@ SOFTWARE.
     };
   }
 
+  // Match the space below the photo to its real horizontal space from the title.
+  function alignPhotoCopyGap(scope) {
+    const photo = scope?.querySelector('.panel-circle');
+    const title = scope?.querySelector('.panel-visual-title h2');
+    const row = scope?.querySelector('.panel-visual-row');
+    const copy = scope?.querySelector('.panel-description');
+    const first = copy?.querySelector('.panel-description-copy p');
+    if (!photo || !title || !row || !copy || !first) return;
+    const photoBox = photo.getBoundingClientRect();
+    const horizontal = Math.max(0, title.getBoundingClientRect().left - photoBox.right);
+    const rowExtra = row.getBoundingClientRect().bottom - photoBox.bottom;
+    const textInset = first.getBoundingClientRect().top - copy.getBoundingClientRect().top;
+    // A taller phone title must still clear the paragraph instead of overlapping it.
+    const value = Math.max(0, horizontal - rowExtra - textInset).toFixed(4) + 'px';
+    if (scope.style.getPropertyValue('--photo-copy-gap') !== value) scope.style.setProperty('--photo-copy-gap', value);
+  }
+
   // The author split shares the actual heading axis at every viewport width.
   function alignAuthorComposition(scope) {
+    alignPhotoCopyGap(scope);
     const heading = scope?.querySelector('.panel-visual-title h2');
     const synthesis = scope?.querySelector('.author-synthesis');
     if (!heading || !synthesis) return;
@@ -1695,6 +1713,10 @@ SOFTWARE.
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
     observer?.observe(heading);
     observer?.observe(rule);
+    const visualRow = title.closest('.panel-visual-row');
+    if (visualRow) observer?.observe(visualRow);
+    const photo = visualRow?.querySelector('.panel-circle');
+    if (photo) observer?.observe(photo);
     window.addEventListener('resize', schedule, {passive:true});
     reducedMotion.addEventListener('change', schedule);
     if (document.fonts?.status !== 'loaded') document.fonts?.ready.then(schedule);
@@ -1710,8 +1732,16 @@ SOFTWARE.
 
   function directionCompositionMarkup(item) {
     const sid = 'd' + item.number.replace('.', '');
-    const paragraph = (key, text, className = '') => '<p' + (className ? ' class="' + className + '"' : '') +
-      ' data-hub-copy="' + key + '" data-hub-text="' + sid + '-' + key + '">' + escapeHtml(text || '') + '</p>';
+    const paragraph = (key, text, className = '') => {
+      let copy = escapeHtml(text || '');
+      // Keep the editor's plain source text; only the two gallery labels are bold.
+      if (item.number === '0.3' && key === 'detail') {
+        copy = copy.replace(/(^|\r?\n)(Живое пространство:|Интернет-галерея:)/g, '$1<strong>$2</strong>')
+          .replace(/\r?\n/g, '<br>');
+      }
+      return '<p' + (className ? ' class="' + className + '"' : '') +
+        ' data-hub-copy="' + key + '" data-hub-text="' + sid + '-' + key + '">' + copy + '</p>';
+    };
     return '<div class="panel-description-copy author-composition">' +
       '<div class="panel-description-support author-opening">' + paragraph('detail', item.detail) + paragraph('more0', item.more?.[0]) + '</div>' +
       '<div class="author-synthesis">' +
