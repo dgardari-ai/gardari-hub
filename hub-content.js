@@ -183,8 +183,7 @@ window.GARDARI_HUB_CONTENT = {
         "инструкции",
         "инструменты",
         "алгоритмы",
-        "skills",
-        "ai",
+        "skills ai",
         "плагины",
         "программы"
       ]
@@ -527,6 +526,41 @@ window.GARDARI_HUB_CONTENT = {
     "d07-category": {
       "all": {
         "font-size": "8px"
+      }
+    },
+    "d01-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d02-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d03-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d04-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d05-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d06-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      }
+    },
+    "d07-disciplines": {
+      "all": {
+        "line-height": "1.173"
       }
     }
   },

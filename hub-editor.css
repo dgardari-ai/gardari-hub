@@ -56,3 +56,10 @@
 #direction-panel[data-direction="0.5"] .panel-context{font-size:8px !important}
 #direction-panel[data-direction="0.6"] .panel-context{font-size:8px !important}
 #direction-panel[data-direction="0.7"] .panel-context{font-size:8px !important}
+#direction-panel[data-direction="0.1"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.2"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.3"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.4"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.5"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.6"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.7"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
