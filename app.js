@@ -1,3 +1,628 @@
+/* Хаб Гардари 2.0 · принятый яркий круг №3.
+ * Движки встроены в app.js для точной отмены через Редактор ВМГ. */
+/* Independent rim impulse + coasting, with the accepted soft bulk motor.
+ * Advanced only by the existing particle-rendering loop. No timers or rAF. */
+(() => {
+  'use strict';
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const limit = 40 * Math.PI / 180;
+  const state = {
+    angle: 0, velocity: 0, target: 0, lastDelta: 0, responses: 0,
+    rimAngle: 0, rimFastVelocity: 0, rimSlowVelocity: 0, lastRimTravel: 0
+  };
+  const BANDS = 17, HISTORY = 256, PROPAGATION = .45;
+  const FAST_TAU = .28, SLOW_TAU = 1.35, RIM_SPEED_LIMIT = 3.4, STOP_SPEED = 1e-4;
+  const bands = new Float64Array(BANDS);
+  const bulkBands = new Float64Array(BANDS), rimBands = new Float64Array(BANDS);
+  const historyTime = new Float64Array(HISTORY);
+  const historyAngle = new Float64Array(HISTORY);
+  const historyRimAngle = new Float64Array(HISTORY);
+  const sampled = { angle: 0, rimAngle: 0 };
+  let historyHead = 0, historyCount = 0;
+  let elapsed = 0, nextPublish = 0, wheel = null;
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+
+  function pushHistory() {
+    historyTime[historyHead] = elapsed;
+    historyAngle[historyHead] = state.angle;
+    historyRimAngle[historyHead] = state.rimAngle;
+    historyHead = (historyHead + 1) % HISTORY;
+    historyCount = Math.min(HISTORY, historyCount + 1);
+  }
+  function readHistory(time) {
+    let newer = (historyHead - 1 + HISTORY) % HISTORY;
+    if (!historyCount || time >= historyTime[newer]) {
+      sampled.angle = state.angle; sampled.rimAngle = state.rimAngle; return;
+    }
+    for (let i = 1; i < historyCount; i++) {
+      const older = (newer - 1 + HISTORY) % HISTORY;
+      if (time >= historyTime[older]) {
+        const span = historyTime[newer] - historyTime[older];
+        const p = span > 0 ? clamp((time - historyTime[older]) / span, 0, 1) : 0;
+        sampled.angle = historyAngle[older] + (historyAngle[newer] - historyAngle[older]) * p;
+        sampled.rimAngle = historyRimAngle[older] + (historyRimAngle[newer] - historyRimAngle[older]) * p;
+        return;
+      }
+      newer = older;
+    }
+    sampled.angle = historyAngle[newer]; sampled.rimAngle = historyRimAngle[newer];
+  }
+  function rebuildBands() {
+    for (let i = 0; i < BANDS; i++) {
+      const radial = smooth(i / (BANDS - 1));
+      const rimWeight = smooth((177 * i / (BANDS - 1) - 130) / 47);
+      readHistory(elapsed - PROPAGATION * (1 - radial));
+      bulkBands[i] = sampled.angle; rimBands[i] = sampled.rimAngle;
+      bands[i] = sampled.angle * (1 - rimWeight) + sampled.rimAngle * rimWeight;
+    }
+  }
+  function clearHistory() {
+    historyHead = historyCount = 0;
+    historyTime.fill(0); historyAngle.fill(0); historyRimAngle.fill(0);
+    pushHistory(); rebuildBands();
+  }
+  function rimVelocity() { return state.rimFastVelocity + state.rimSlowVelocity; }
+  function rimRemaining() { return state.rimFastVelocity * FAST_TAU + state.rimSlowVelocity * SLOW_TAU; }
+  function publish() {
+    wheel ||= document.getElementById('gardari-wheel');
+    if (!wheel) return;
+    Object.assign(wheel.dataset, {
+      fieldAngle: state.angle.toFixed(6), fieldTarget: state.target.toFixed(6),
+      fieldVelocity: state.velocity.toFixed(6), fieldLastDelta: state.lastDelta.toFixed(6),
+      fieldResponses: String(state.responses), fieldRimAngle: state.rimAngle.toFixed(6),
+      fieldRimVelocity: rimVelocity().toFixed(6),
+      fieldRimFastVelocity: state.rimFastVelocity.toFixed(6),
+      fieldRimSlowVelocity: state.rimSlowVelocity.toFixed(6),
+      fieldRimRemaining: rimRemaining().toFixed(6), fieldRimLastTravel: state.lastRimTravel.toFixed(6),
+      fieldMiddleAngle: bands[(BANDS - 1) / 2].toFixed(6), fieldCoreAngle: bands[0].toFixed(6),
+      fieldPropagation: String(PROPAGATION)
+    });
+  }
+  function settle() {
+    state.angle = state.target; state.velocity = 0;
+    // Freeze the reached rim position: pausing never pulls it backwards.
+    state.rimFastVelocity = state.rimSlowVelocity = 0;
+    clearHistory();
+    publish();
+  }
+  function reset() {
+    state.angle = state.velocity = state.target = state.lastDelta = 0;
+    state.rimAngle = state.rimFastVelocity = state.rimSlowVelocity = state.lastRimTravel = 0;
+    state.responses = 0; elapsed = nextPublish = 0;
+    clearHistory();
+    publish();
+  }
+  function onTurn(event) {
+    const delta = Number(event.detail?.delta);
+    if (!Number.isFinite(delta) || Math.abs(delta) < 1e-7 || media.matches || document.hidden) return;
+    state.target = state.angle + clamp(delta * .325, -limit, limit);
+    if (state.velocity * delta < 0) state.velocity *= .18;
+    if (rimVelocity() * delta < 0) state.rimFastVelocity = state.rimSlowVelocity = 0;
+    const travel = Math.sign(delta) * Math.min(1.5, Math.abs(delta) * .95);
+    state.rimFastVelocity += travel * .4 / FAST_TAU;
+    state.rimSlowVelocity += travel * .6 / SLOW_TAU;
+    const speed = Math.abs(rimVelocity());
+    if (speed > RIM_SPEED_LIMIT) {
+      const scale = RIM_SPEED_LIMIT / speed;
+      state.rimFastVelocity *= scale; state.rimSlowVelocity *= scale;
+    }
+    state.lastRimTravel = travel;
+    state.lastDelta = delta; state.responses++;
+    rebuildBands(); publish();
+  }
+  window.addEventListener('hub:navigation-started', onTurn);
+  window.addEventListener('hub:field-pause', settle);
+  window.addEventListener('hub:navigation-settled', event => { if (event.detail?.interrupted) settle(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) settle(); });
+  media.addEventListener('change', () => { if (media.matches) settle(); });
+
+  window.HubFieldNavigation = {
+    advance(dt) {
+      if (!Number.isFinite(dt) || dt <= 0) return state;
+      dt = Math.min(dt, 1 / 30);
+      if (media.matches || document.hidden) { settle(); return state; }
+      state.velocity += ((state.target - state.angle) * 10 - state.velocity * 6.4) * dt;
+      state.velocity = clamp(state.velocity, -1.5, 1.5);
+      const remaining = state.target - state.angle, change = state.velocity * dt;
+      if (remaining * change > 0 && Math.abs(change) > Math.abs(remaining)) {
+        state.angle = state.target; state.velocity = 0;
+      } else state.angle += change;
+      if (Math.abs(state.target - state.angle) < 1e-5 && Math.abs(state.velocity) < 1e-4) {
+        state.angle = state.target; state.velocity = 0;
+      }
+      // Integrate each exponential exactly, so its unbounded total travel is
+      // velocity*tau rather than a frame-rate-dependent Euler approximation.
+      const fastDecay = Math.exp(-dt / FAST_TAU), slowDecay = Math.exp(-dt / SLOW_TAU);
+      state.rimAngle += state.rimFastVelocity * FAST_TAU * (1 - fastDecay)
+        + state.rimSlowVelocity * SLOW_TAU * (1 - slowDecay);
+      state.rimFastVelocity *= fastDecay; state.rimSlowVelocity *= slowDecay;
+      if (Math.abs(state.rimFastVelocity) < STOP_SPEED) state.rimFastVelocity = 0;
+      if (Math.abs(state.rimSlowVelocity) < STOP_SPEED) state.rimSlowVelocity = 0;
+      elapsed += dt; pushHistory(); rebuildBands();
+      if (elapsed >= nextPublish) { publish(); nextPublish = elapsed + .05; }
+      return state;
+    },
+    sample(projectedRadius, depthFactor = .5) {
+      const radius = clamp(projectedRadius, 0, 177), normalized = radius / 177;
+      // Keep a subtle depth-dependent propagation offset inside, but exactly
+      // zero delay at R177: its reported angle is the actual rim angle.
+      const radial = (normalized - .03 * (1 - clamp(depthFactor, 0, 1)) * normalized * (1 - normalized)) * (BANDS - 1);
+      const index = Math.min(BANDS - 2, Math.floor(radial)), fraction = radial - index;
+      const bulkAngle = bulkBands[index] + (bulkBands[index + 1] - bulkBands[index]) * fraction;
+      const rimAngle = rimBands[index] + (rimBands[index + 1] - rimBands[index]) * fraction;
+      const rimWeight = smooth((radius - 130) / 47);
+      return bulkAngle * (1 - rimWeight) + rimAngle * rimWeight;
+    },
+    reset, settle,
+    getState: () => ({ ...state, rimVelocity: rimVelocity(), rimRemaining: rimRemaining(),
+      middleAngle: bands[(BANDS - 1) / 2], coreAngle: bands[0], propagationSeconds: PROPAGATION })
+  };
+  clearHistory();
+})();
+
+/*
+ * Хаб Гардари · вариант03 · более яркая палитра и акцентные знаки.
+ * Собственная реализация: ограниченные сдвиги живой объёмной базы, локальный
+ * импульс жеста и затухающая пружина. Это не физическая модель жидкости.
+ * Никаких сетевых зависимостей и собственного requestAnimationFrame.
+ */
+(() => {
+  'use strict';
+  const CORE = 4461, VEIL = 868, COUNT = CORE + VEIL, BOUND = 175;
+  const PERIPHERAL = VEIL / 2, PERIPHERAL_START = CORE + VEIL / 2;
+  const peripheralRadius = new Float32Array(PERIPHERAL), peripheralAngle = new Float32Array(PERIPHERAL);
+  const peripheralPhase = new Float32Array(PERIPHERAL);
+  const x = new Float32Array(COUNT), y = new Float32Array(COUNT), z = new Float32Array(COUNT);
+  const homeX = new Float32Array(COUNT), homeY = new Float32Array(COUNT), homeZ = new Float32Array(COUNT);
+  const offsetX = new Float32Array(CORE), offsetY = new Float32Array(CORE), offsetZ = new Float32Array(CORE);
+  const velocityX = new Float32Array(CORE), velocityY = new Float32Array(CORE), velocityZ = new Float32Array(CORE);
+  const size = new Float32Array(COUNT), sprite = new Uint16Array(COUNT);
+  const projectedX = new Float32Array(COUNT), projectedY = new Float32Array(COUNT), depth = new Float32Array(COUNT);
+  const alphaValues = new Float32Array(COUNT), drawSizes = new Float32Array(COUNT);
+  const order = new Uint16Array(COUNT), bins = new Uint8Array(COUNT), binCounts = new Uint16Array(28), binStarts = new Uint16Array(28);
+  const densityGrid = new Uint16Array(10000), densityCells = new Uint16Array(COUNT);
+  const options = { flow: 1, interaction: 1, veil: 1 };
+  const cyrillic = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯабвгдежзиклмнопрстуфхцчшэюя';
+  const latin = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz', digits = '0123456789';
+  const glyphs = [...new Set(cyrillic + latin + digits)];
+  const dots = ['#687e90', '#987467', '#708360', '#897294', '#9b8757', '#688b86'];
+  const fieldPalette = ['#0072d5', '#00897b', '#118d29', '#ab7500', '#d34a00', '#c63c8a', '#8451c9', '#d02b31', '#858c00', '#c97800'];
+  const colorIndex = new Uint8Array(COUNT);
+  const accentIndex = new Uint8Array(COUNT);
+  const glyphLookup = new Map(glyphs.map((glyph, i) => [glyph, i]));
+  const ATLAS_CELL = 48, ATLAS_COLS = 16;
+  const ATLAS_PAGE_HEIGHT = Math.ceil((glyphs.length + dots.length) / ATLAS_COLS) * ATLAS_CELL;
+  let atlas = null, fontsRequested = false, canvasRef = null, listenersBound = false;
+  let lastTime = null, simTime = 0, flowTime = 0, frame = 0, lastDiagnosticsAt = -Infinity;
+  let frameDuration = 16.667, renderCost = 0, maxRadius = 0, maxDisplacement = 0, repaired = 0;
+  let pointerX = 0, pointerY = 0, pointerDX = 0, pointerDY = 0, pointerActive = false;
+  let lastPointerX = 0, lastPointerY = 0, lastPointerAt = -Infinity, motionReduced = false;
+  let seed = 817041, coverage = {};
+  let accentCount = 0, cyrillicAccentCount = 0;
+  let coolYellowCount = 0, warmYellowCount = 0;
+  const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+  const smooth = value => { value = clamp(value, 0, 1); return value * value * (3 - 2 * value); };
+  function random() {
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return (seed >>> 0) / 4294967296;
+  }
+  function radicalInverse(value, base) {
+    let result = 0, factor = 1 / base;
+    while (value > 0) {
+      result += (value % base) * factor;
+      value = Math.floor(value / base); factor /= base;
+    }
+    return result;
+  }
+  function particleColor(index) {
+    // Separate deterministic hashing: color never consumes the material's
+    // random sequence and is not correlated with its stratified coordinates.
+    let hash = Math.imul((index + 1) ^ ((index + 1) >>> 16), 0x7feb352d);
+    hash = Math.imul(hash ^ (hash >>> 15), 0x846ca68b);
+    const originalColor = ((hash ^ (hash >>> 16)) >>> 0) % 8;
+    let yellowHash = Math.imul(index + 0x6d2b79f5, 0x7feb352d);
+    yellowHash = Math.imul(yellowHash ^ (yellowHash >>> 15), 0x846ca68b);
+    yellowHash = (yellowHash ^ (yellowHash >>> 16)) >>> 0;
+    return yellowHash / 4294967296 < .20 ? 8 + ((yellowHash >>> 8) & 1) : originalColor;
+  }
+  function emphasisFraction(index) {
+    let hash = Math.imul(index + 0x165667b1, 0x7feb352d);
+    hash = Math.imul(hash ^ (hash >>> 15), 0x846ca68b);
+    return ((hash ^ (hash >>> 16)) >>> 0) / 4294967296;
+  }
+
+  function seedField() {
+    seed = 817041; maxRadius = 0; accentCount = cyrillicAccentCount = 0;
+    coolYellowCount = warmYellowCount = 0;
+    for (let i = 0; i < COUNT; i++) {
+      colorIndex[i] = particleColor(i);
+      if (colorIndex[i] === 8) coolYellowCount++;
+      else if (colorIndex[i] === 9) warmYellowCount++;
+      // Low-discrepancy volume samples remove accidental holes without placing
+      // glyphs on a lattice. The complete core and half of the stable population
+      // fill the ball. The other half softly reinforces a broad projected band
+      // 24 units wide, with its own depth: never a drawn line or a narrow rim.
+      const stable = i >= CORE, index = stable ? i - CORE : i;
+      const peripheral = stable && index >= VEIL / 2;
+      const localIndex = peripheral ? index - VEIL / 2 : index;
+      const population = stable ? VEIL / 2 : CORE;
+      const radialRank = (localIndex + .5) / population;
+      const radius = Math.cbrt(radialRank) * (stable ? 173 : 172);
+      const directionIndex = localIndex + 1 + (stable ? peripheral ? 173 : 59 : 0);
+      const vertical = radicalInverse(directionIndex, 2) * 2 - 1;
+      const angle = (radicalInverse(directionIndex, 3) + (peripheral ? .173 : stable ? .417 : 0)) * Math.PI * 2;
+      const horizontal = Math.sqrt(1 - vertical * vertical);
+      x[i] = homeX[i] = radius * horizontal * Math.cos(angle);
+      y[i] = homeY[i] = radius * vertical;
+      z[i] = homeZ[i] = radius * horizontal * Math.sin(angle);
+      if (peripheral) {
+        // Keep all seven radial strata when the population changes. Each band
+        // receives an integer, evenly balanced number of angular samples.
+        const radialStratum = Math.min(6, Math.floor(localIndex * 7 / PERIPHERAL));
+        const bandStart = Math.ceil(radialStratum * PERIPHERAL / 7);
+        const bandEnd = Math.ceil((radialStratum + 1) * PERIPHERAL / 7);
+        const angularStratum = localIndex - bandStart, angularCount = bandEnd - bandStart;
+        const radialJitter = radicalInverse(angularStratum + radialStratum * 11 + 1, 2);
+        const angularJitter = radicalInverse(angularStratum + radialStratum * 7 + 1, 5) - .5;
+        // A continuous outward density gradient fills the last few units too;
+        // the complete 24-unit band remains populated, without a thin rim.
+        const projectedRadius = 153 + Math.pow((radialStratum + radialJitter) / 7, .42) * 24;
+        const projectedAngle = ((angularStratum + .5 + angularJitter * .34) / angularCount
+          + radialStratum * .38196601125) * Math.PI * 2;
+        const depthPosition = 18 + radicalInverse(localIndex + 1, 3) * 34;
+        peripheralRadius[localIndex] = projectedRadius;
+        peripheralAngle[localIndex] = projectedAngle;
+        peripheralPhase[localIndex] = radicalInverse(localIndex + 1, 7) * Math.PI * 2;
+        x[i] = homeX[i] = Math.cos(projectedAngle) * projectedRadius * (800 - depthPosition) / 800;
+        y[i] = homeY[i] = Math.sin(projectedAngle) * projectedRadius * (800 - depthPosition) / 800;
+        z[i] = homeZ[i] = depthPosition;
+      }
+      size[i] = random(); maxRadius = Math.max(maxRadius, Math.hypot(x[i], y[i], z[i]));
+      const choice = random();
+      if (choice > .82) sprite[i] = glyphs.length + Math.floor(random() * dots.length);
+      else {
+        const alphabet = choice < .43 ? cyrillic : choice < .62 ? latin : digits;
+        sprite[i] = glyphLookup.get(alphabet[Math.floor(random() * alphabet.length)]);
+      }
+      const isCyrillic = sprite[i] < glyphs.length && cyrillic.includes(glyphs[sprite[i]]);
+      accentIndex[i] = i < CORE && sprite[i] < glyphs.length && emphasisFraction(i) < (isCyrillic ? .42 : .07) ? 1 : 0;
+      if (accentIndex[i]) { accentCount++; if (isCyrillic) cyrillicAccentCount++; }
+    }
+    offsetX.fill(0); offsetY.fill(0); offsetZ.fill(0);
+    velocityX.fill(0); velocityY.fill(0); velocityZ.fill(0);
+    lastTime = null; simTime = flowTime = 0; frame = 0;
+    lastDiagnosticsAt = -Infinity; repaired = 0; maxDisplacement = 0;
+    pointerDX = pointerDY = 0; pointerActive = false; lastPointerAt = -Infinity;
+    coverage = measureVolume();
+  }
+
+  function buildAtlas() {
+    const surface = document.createElement('canvas');
+    surface.width = ATLAS_CELL * ATLAS_COLS;
+    surface.height = ATLAS_PAGE_HEIGHT * fieldPalette.length * 2;
+    const ctx = surface.getContext('2d');
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    fieldPalette.forEach((color, page) => {
+      for (let accent = 0; accent < 2; accent++) {
+        const top = (page * 2 + accent) * ATLAS_PAGE_HEIGHT;
+        ctx.fillStyle = color;
+        ctx.font = `${accent ? 700 : 500} 24px "JetBrains Mono", monospace`;
+        glyphs.forEach((glyph, i) => ctx.fillText(glyph,
+          (i % ATLAS_COLS + .5) * ATLAS_CELL, top + (Math.floor(i / ATLAS_COLS) + .5) * ATLAS_CELL + .5));
+        dots.forEach((_originalColor, j) => {
+          const i = glyphs.length + j;
+          ctx.beginPath();
+          ctx.arc((i % ATLAS_COLS + .5) * ATLAS_CELL, top + (Math.floor(i / ATLAS_COLS) + .5) * ATLAS_CELL, 7, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    });
+    atlas = surface;
+  }
+
+  function step(dt) {
+    const nav = window.HubFieldNavigation?.advance(dt) || { angle: 0, velocity: 0 };
+    simTime += dt; flowTime += dt * options.flow;
+    const azimuth = flowTime * .025, elevation = .12 * Math.sin(flowTime * .11);
+    const ca = Math.cos(azimuth), sa = Math.sin(azimuth), ce = Math.cos(elevation), se = Math.sin(elevation);
+    const phase = flowTime * .32;
+    const pulseX = pointerDX, pulseY = pointerDY, pulseSpeed = Math.hypot(pulseX, pulseY);
+    pointerDX *= Math.exp(-15 * dt); pointerDY *= Math.exp(-15 * dt);
+    const damping = Math.exp(-1.9 * dt), stiffness = 3.4;
+    maxDisplacement = maxRadius = 0;
+    for (let i = 0; i < COUNT; i++) {
+      const stable = i >= CORE;
+      const peripheral = i >= PERIPHERAL_START;
+      let a = homeX[i], b = homeY[i], c = homeZ[i];
+      // The internal shears keep the accepted living texture. Their radial
+      // envelope smoothly vanishes near the outer volume, so quiet motion does
+      // not repeatedly dent the silhouette. This tapered map is deliberately
+      // not claimed to have an exactly unit Jacobian.
+      if (!stable) {
+        const envelope = 1 - smooth((Math.hypot(a, b, c) - 123) / 49);
+        a += 5.3 * envelope * Math.sin(b * .027 + phase);
+        b += 5.1 * envelope * Math.sin(c * .026 - phase * .81);
+        c += 4.8 * envelope * Math.sin(a * .024 + phase * .67);
+      }
+      if (peripheral) {
+        const j = i - PERIPHERAL_START;
+        const angle = peripheralAngle[j] + flowTime * .007
+          + .004 * Math.sin(flowTime * .16 + peripheralPhase[j]);
+        c = homeZ[i] + 5.5 * Math.sin(flowTime * .13 + peripheralPhase[j]);
+        const worldRadius = peripheralRadius[j] * (800 - c) / 800;
+        a = Math.cos(angle) * worldRadius; b = Math.sin(angle) * worldRadius;
+      } else {
+        const angle = stable ? azimuth * .28 : azimuth;
+        const cosAngle = stable ? Math.cos(angle) : ca, sinAngle = stable ? Math.sin(angle) : sa;
+        const rotatedX = a * cosAngle - c * sinAngle;
+        const rotatedZ = a * sinAngle + c * cosAngle;
+        a = rotatedX;
+        if (stable) c = rotatedZ;
+        else { const rotatedY = b * ce - rotatedZ * se; c = b * se + rotatedZ * ce; b = rotatedY; }
+      }
+
+      // All material samples the same edge-led temporal wave. The centre may
+      // still be responding after the current outer angle has settled, so sample
+      // must also be called when nav.angle/velocity have already reached zero.
+      const projectedRadius = Math.hypot(a, b) * 800 / (800 - c);
+      const depthFactor = clamp((c + BOUND) / (2 * BOUND), 0, 1);
+      const turn = window.HubFieldNavigation?.sample
+        ? window.HubFieldNavigation.sample(projectedRadius, depthFactor) : nav.angle;
+      if (Math.abs(turn) > 1e-8) {
+        const turnCos = Math.cos(turn), turnSin = Math.sin(turn);
+        const turnedX = a * turnCos - b * turnSin;
+        b = a * turnSin + b * turnCos; a = turnedX;
+      }
+
+      if (!stable) {
+        let dx = offsetX[i], dy = offsetY[i], dz = offsetZ[i];
+        let u = velocityX[i], v = velocityY[i], w = velocityZ[i];
+        if (pulseSpeed > .2) {
+          const perspective = 800 / (800 - c);
+          const rx = a * perspective - pointerX, ry = b * perspective - pointerY;
+          const distance2 = rx * rx + ry * ry;
+          const local = Math.exp(-distance2 / 3800);
+          const front = .5 + .5 * clamp((c + 150) / 300, 0, 1);
+          const edge = 1 - .62 * smooth((Math.hypot(a, b, c) - 125) / 45);
+          const amount = local * front * edge * options.interaction;
+          const fullness = Math.max(.08, 1 - Math.hypot(dx, dy, dz) / 83);
+          // Parallel impulse, not attraction to the cursor: a gesture displaces
+          // a patch and rolls it in depth rather than concentrating it at a point.
+          u += pulseX * amount * 7.8 * fullness * dt;
+          v += pulseY * amount * 7.8 * fullness * dt;
+          const perpendicular = rx * pulseY - ry * pulseX;
+          w += perpendicular * amount * .065 * fullness * dt;
+        }
+        u = (u - dx * stiffness * dt) * damping;
+        v = (v - dy * stiffness * dt) * damping;
+        w = (w - dz * stiffness * dt) * damping;
+        const speed = Math.hypot(u, v, w);
+        if (speed > 270) { const ratio = 270 / speed; u *= ratio; v *= ratio; w *= ratio; }
+        dx += u * dt; dy += v * dt; dz += w * dt;
+        const displacement = Math.hypot(dx, dy, dz);
+        if (displacement > 77) {
+          const ratio = 77 / displacement; dx *= ratio; dy *= ratio; dz *= ratio;
+          const outward = Math.max(0, (u * dx + v * dy + w * dz) / 77);
+          u -= dx / 77 * outward; v -= dy / 77 * outward; w -= dz / 77 * outward;
+        }
+        if (!Number.isFinite(dx + dy + dz + u + v + w)) { dx = dy = dz = u = v = w = 0; repaired++; }
+        offsetX[i] = dx; offsetY[i] = dy; offsetZ[i] = dz;
+        velocityX[i] = u; velocityY[i] = v; velocityZ[i] = w;
+        a += dx; b += dy; c += dz;
+        maxDisplacement = Math.max(maxDisplacement, Math.hypot(dx, dy, dz));
+      }
+      const radius = Math.hypot(a, b, c);
+      if (radius > BOUND) { const ratio = BOUND / radius; a *= ratio; b *= ratio; c *= ratio; }
+      x[i] = a; y[i] = b; z[i] = c; maxRadius = Math.max(maxRadius, Math.min(radius, BOUND));
+    }
+  }
+
+  function eigenvalues(xx, yy, zz, xy, xz, yz) {
+    const a = [[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]];
+    for (let iteration = 0; iteration < 12; iteration++) {
+      let p = 0, q = 1;
+      if (Math.abs(a[0][2]) > Math.abs(a[p][q])) { p = 0; q = 2; }
+      if (Math.abs(a[1][2]) > Math.abs(a[p][q])) { p = 1; q = 2; }
+      if (Math.abs(a[p][q]) < 1e-7) break;
+      const theta = .5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]);
+      const cs = Math.cos(theta), sn = Math.sin(theta), app = a[p][p], aqq = a[q][q], apq = a[p][q];
+      a[p][p] = cs * cs * app - 2 * sn * cs * apq + sn * sn * aqq;
+      a[q][q] = sn * sn * app + 2 * sn * cs * apq + cs * cs * aqq;
+      a[p][q] = a[q][p] = 0;
+      for (let r = 0; r < 3; r++) if (r !== p && r !== q) {
+        const arp = a[r][p], arq = a[r][q];
+        a[r][p] = a[p][r] = cs * arp - sn * arq;
+        a[r][q] = a[q][r] = sn * arp + cs * arq;
+      }
+    }
+    return [a[0][0], a[1][1], a[2][2]].sort((a, b) => a - b);
+  }
+
+  function measureVolume() {
+    const sectors = new Uint16Array(24);
+    const edgeSectors = Array.from({ length: 36 }, () => []);
+    const edgeBand174 = new Uint16Array(36);
+    let projectedMaximum = 0;
+    let sx = 0, sy = 0, sz = 0, xx = 0, yy = 0, zz = 0, xy = 0, xz = 0, yz = 0;
+    let central = 0, centralCore = 0, centralVeil = 0, sphereCore = 0, radiusSum = 0;
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity, zmin = Infinity, zmax = -Infinity;
+    for (let i = 0; i < COUNT; i++) {
+      const a = motionReduced ? homeX[i] : x[i], b = motionReduced ? homeY[i] : y[i], c = motionReduced ? homeZ[i] : z[i];
+      const radius = Math.hypot(a, b, c), perspective = 800 / (800 - c);
+      const screenRadius = Math.hypot(a, b) * perspective;
+      const angularFraction = (Math.atan2(b, a) + Math.PI) / (Math.PI * 2);
+      const edgeSector = Math.min(35, Math.floor(angularFraction * 36));
+      edgeSectors[edgeSector].push(screenRadius);
+      if (screenRadius >= 174 && screenRadius <= 181) edgeBand174[edgeSector]++;
+      projectedMaximum = Math.max(projectedMaximum, screenRadius);
+      radiusSum += radius;
+      if (screenRadius < 50) { central++; if (i < CORE) centralCore++; else centralVeil++; }
+      if (screenRadius > 120) sectors[Math.min(23, Math.floor((Math.atan2(b, a) + Math.PI) / (Math.PI * 2) * 24))]++;
+      if (i < CORE) {
+        sx += a; sy += b; sz += c; xx += a*a; yy += b*b; zz += c*c; xy += a*b; xz += a*c; yz += b*c;
+        if (radius < BOUND * .45) sphereCore++;
+        xmin = Math.min(xmin, a); xmax = Math.max(xmax, a); ymin = Math.min(ymin, b); ymax = Math.max(ymax, b); zmin = Math.min(zmin, c); zmax = Math.max(zmax, c);
+      }
+    }
+    const mx = sx / CORE, my = sy / CORE, mz = sz / CORE;
+    const eigen = eigenvalues(xx/CORE-mx*mx, yy/CORE-my*my, zz/CORE-mz*mz, xy/CORE-mx*my, xz/CORE-mx*mz, yz/CORE-my*mz);
+    const edgeRadii98 = edgeSectors.map(values => {
+      values.sort((a, b) => a - b);
+      const at = (values.length - 1) * .98, lower = Math.floor(at), fraction = at - lower;
+      return values.length ? values[lower] * (1 - fraction) + values[Math.min(lower + 1, values.length - 1)] * fraction : 0;
+    });
+    const edgeMean = edgeRadii98.reduce((sum, value) => sum + value, 0) / edgeRadii98.length;
+    const edgeDeviation = Math.sqrt(edgeRadii98.reduce((sum, value) => sum + (value - edgeMean) ** 2, 0) / edgeRadii98.length);
+    return {
+      angularSectors: [...sectors].filter(value => value >= 6).length, angularSectorsTotal: 24,
+      minimumSectorPopulation: Math.min(...sectors), centralParticles: central, centralCoreParticles: centralCore,
+      centralVeilParticles: centralVeil, coreInnerSphereFraction: +(sphereCore / CORE).toFixed(4),
+      principalAxes: eigen.map(value => +Math.sqrt(Math.max(0, value)).toFixed(2)),
+      axisRatio: +Math.sqrt(eigen[0] / eigen[2]).toFixed(4),
+      axisSpans: [xmax-xmin, ymax-ymin, zmax-zmin].map(value => +value.toFixed(2)),
+      meanRadius: +(radiusSum / COUNT).toFixed(2), centre: [mx, my, mz].map(value => +value.toFixed(2)),
+      edgeSectorCount: 36, edgeQuantile: .98, edgeRadii98: edgeRadii98.map(value => +value.toFixed(2)),
+      edgeMeanRadius98: +edgeMean.toFixed(2), edgeMinRadius98: +Math.min(...edgeRadii98).toFixed(2),
+      edgeMaxRadius98: +Math.max(...edgeRadii98).toFixed(2),
+      edgeRange98: +(Math.max(...edgeRadii98) - Math.min(...edgeRadii98)).toFixed(2),
+      edgeCV98: +(edgeDeviation / edgeMean).toFixed(5), projectedMaximum: +projectedMaximum.toFixed(2),
+      edgeBand174Count: edgeBand174.reduce((sum, value) => sum + value, 0),
+      edgeBand174Minimum: Math.min(...edgeBand174),
+      edgeBand174OccupiedSectors: [...edgeBand174].filter(value => value > 0).length
+    };
+  }
+
+  function pointerMove(event) {
+    if (!canvasRef || motionReduced) return;
+    const rect = canvasRef.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const px = (event.clientX - rect.left) * 600 / rect.width - 300;
+    const py = (event.clientY - rect.top) * 600 / rect.height - 300, now = performance.now();
+    if (pointerActive && now - lastPointerAt < 200) {
+      const elapsed = Math.max(8, now - lastPointerAt) / 1000;
+      pointerDX = pointerDX * .32 + clamp((px-lastPointerX)/elapsed, -950, 950) * .68;
+      pointerDY = pointerDY * .32 + clamp((py-lastPointerY)/elapsed, -950, 950) * .68;
+    }
+    pointerX = lastPointerX = px; pointerY = lastPointerY = py;
+    pointerActive = true; lastPointerAt = now;
+  }
+  function bindPointer() {
+    if (listenersBound) return;
+    const wheel = document.getElementById('gardari-wheel');
+    if (!wheel) return;
+    for (const event of ['pointermove', 'pointerenter', 'pointerdown']) wheel.addEventListener(event, pointerMove, { passive: true });
+    for (const event of ['pointerleave', 'pointercancel']) wheel.addEventListener(event, () => { pointerActive = false; }, { passive: true });
+    listenersBound = true;
+  }
+
+  function draw(ctx, canvas, reduced) {
+    const scale = canvas.width / 600;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0); ctx.clearRect(0, 0, 600, 600);
+    binCounts.fill(0); densityGrid.fill(0);
+    for (let i = 0; i < COUNT; i++) {
+      const a = reduced ? homeX[i] : x[i], b = reduced ? homeY[i] : y[i], c = reduced ? homeZ[i] : z[i];
+      const perspective = 800 / (800 - c), d = clamp((c + BOUND) / (BOUND * 2), 0, 1);
+      projectedX[i] = 300 + a * perspective; projectedY[i] = 300 + b * perspective; depth[i] = d;
+      const cell = clamp(Math.floor(projectedX[i] / 6), 0, 99) + clamp(Math.floor(projectedY[i] / 6), 0, 99) * 100;
+      densityCells[i] = cell; densityGrid[cell]++;
+      const bin = Math.min(27, Math.floor(d * 28)); bins[i] = bin; binCounts[bin]++;
+    }
+    let sum = 0;
+    for (let i = 0; i < 28; i++) { binStarts[i] = sum; sum += binCounts[i]; }
+    for (let i = 0; i < COUNT; i++) order[binStarts[bins[i]]++] = i;
+    // Field visibility is a small optical adjustment. Even its minimum cannot remove
+    // the volume's stable population or turn it into a vanishing outline.
+    const visibility = (options.veil - .3) / 1.5;
+    for (let j = 0; j < COUNT; j++) {
+      const i = order[j], d = depth[i], stable = i >= CORE, dot = sprite[i] >= glyphs.length;
+      let alpha = stable ? .20 + d * .28 : .08 + Math.pow(d, 1.65) * .70;
+      alpha *= .88 + size[i] * .12;
+      if (stable) alpha *= .80 + visibility * .20;
+      else alpha *= .94 + visibility * .06;
+      if (accentIndex[i]) alpha = Math.min(.96, alpha * 1.55 + .06 + d * .10);
+      // Reduce excessive overprinting in a gesture's fold, keeping every cell
+      // legible instead of allowing a black knot to accumulate.
+      alpha *= Math.max(.52, 1 / Math.sqrt(Math.max(1, densityGrid[densityCells[i]] / 7)));
+      if (dot) alpha *= .95;
+      let fontSize = (stable ? 5.3 : 5.2) + d * 3.0 + size[i] * .70;
+      if (accentIndex[i]) fontSize *= 1.08 + size[i] * .06;
+      const side = dot ? (2.1 + d * 1.4 + size[i] * .55) * 3.2 : fontSize * 2;
+      alphaValues[i] = alpha; drawSizes[i] = side;
+      ctx.globalAlpha = Math.min(accentIndex[i] ? .94 : .85, alpha);
+      ctx.drawImage(atlas, sprite[i] % ATLAS_COLS * ATLAS_CELL, Math.floor(sprite[i] / ATLAS_COLS) * ATLAS_CELL + (colorIndex[i] * 2 + accentIndex[i]) * ATLAS_PAGE_HEIGHT,
+        ATLAS_CELL, ATLAS_CELL, projectedX[i]-side/2, projectedY[i]-side/2, side, side);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function render({ canvas, ctx, time, reducedMotion = false }) {
+    if (!canvas || !ctx || !Number.isFinite(time)) return;
+    const started = performance.now(); canvasRef = canvas; bindPointer();
+    canvas.dataset.fieldColorCount = String(fieldPalette.length);
+    canvas.dataset.fieldAccentCount = String(accentCount);
+    canvas.dataset.fieldCyrillicAccentCount = String(cyrillicAccentCount);
+    canvas.dataset.fieldYellowCount = String(coolYellowCount + warmYellowCount);
+    canvas.dataset.fieldCoolYellowCount = String(coolYellowCount);
+    canvas.dataset.fieldWarmYellowCount = String(warmYellowCount);
+    if (!atlas) buildAtlas();
+    if (!fontsRequested && document.fonts) {
+      fontsRequested = true;
+      document.fonts.ready.then(() => {
+        buildAtlas();
+        window.dispatchEvent(new CustomEvent('hub:field-redraw'));
+      });
+    }
+    const reduced = typeof reducedMotion === 'object' ? !!reducedMotion.matches : !!reducedMotion;
+    const elapsed = lastTime === null ? 1/60 : Math.max(0, (time-lastTime)/1000);
+    if (elapsed > .002 && elapsed < .1) frameDuration += (elapsed*1000-frameDuration)*.055;
+    lastTime = time;
+    if (!reduced) {
+      const dt = elapsed > .2 || motionReduced ? 1/60 : Math.min(elapsed, 1/30);
+      const steps = dt > .019 ? 2 : 1;
+      for (let i = 0; i < steps; i++) if (dt > 0) step(dt/steps);
+    } else { pointerDX = pointerDY = 0; pointerActive = false; }
+    motionReduced = reduced; draw(ctx, canvas, reduced); frame++;
+    renderCost += (performance.now()-started-renderCost)*.09;
+    if (time-lastDiagnosticsAt >= 1000) {
+      coverage = measureVolume();
+      Object.assign(canvas.dataset, {
+        trialParticles: String(COUNT), trialFrameMs: renderCost.toFixed(2), trialFinite: String(repaired === 0),
+        trialMaxRadius: maxRadius.toFixed(2), trialMaxDisplacement: maxDisplacement.toFixed(2),
+        trialSectors: `${coverage.angularSectors}/24`, trialCentral: String(coverage.centralParticles),
+        trialCentralCore: String(coverage.centralCoreParticles), trialAxisRatio: String(coverage.axisRatio),
+        trialInnerMass: String(coverage.coreInnerSphereFraction), trialMeanRadius: String(coverage.meanRadius),
+        trialEdgeMean: String(coverage.edgeMeanRadius98), trialEdgeRange: String(coverage.edgeRange98),
+        trialEdgeCV: String(coverage.edgeCV98), trialEdgeMin: String(coverage.edgeMinRadius98),
+        trialEdgeMax: String(coverage.edgeMaxRadius98), trialProjectedMax: String(coverage.projectedMaximum),
+        trialEdgeBandMin: String(coverage.edgeBand174Minimum),
+        trialEdgeBandSectors: `${coverage.edgeBand174OccupiedSectors}/36`
+      });
+      lastDiagnosticsAt = time;
+    }
+  }
+  seedField();
+  window.HubFluidField = {
+    render, reset: seedField,
+    setOptions(next = {}) {
+      for (const name of ['flow', 'interaction', 'veil']) if (typeof next[name] === 'number' && Number.isFinite(next[name])) options[name] = clamp(next[name], .3, 1.8);
+      return { ...options };
+    },
+    getStats() {
+      return {
+        implementation: 'circle-color-emphasis-03', particles: COUNT, coreParticles: CORE, veilParticles: VEIL,
+        accentParticles: accentCount, cyrillicAccentParticles: cyrillicAccentCount,
+        coolYellowParticles: coolYellowCount, warmYellowParticles: warmYellowCount,
+        frames: frame, simulationSeconds: +simTime.toFixed(2), fps: +(1000/frameDuration).toFixed(1), renderMilliseconds: +renderCost.toFixed(2),
+        maxRadius: +maxRadius.toFixed(2), maxDisplacement: +maxDisplacement.toFixed(2), repairedNonFinite: repaired,
+        reducedMotion: motionReduced, pointerActive, options: { ...options }, ...measureVolume()
+      };
+    }
+  };
+})();
+
+window.HubFluidField.setOptions({flow:1.8, interaction:1, veil:0.3});
+
 /* Paper-fold behavior adapted from React Bits FoldText (David Haz).
 MIT + Commons Clause License Condition v1.0
 
@@ -228,7 +853,7 @@ SOFTWARE.
     return Math.abs(delta) < 1e-7 ? from : from + delta;
   }
 
-  function settleNavigationTurn() {
+  function settleNavigationTurn(interrupted = false) {
     if (!navigationTurn) return;
     const turn = navigationTurn;
     navigationOffset = turn.to;
@@ -239,7 +864,7 @@ SOFTWARE.
     wheel.dataset.topDirection = directions[turn.index].number;
     updateOrbitLabelEmphasis();
     window.dispatchEvent(new CustomEvent("hub:navigation-settled", {
-      detail: { number: directions[turn.index].number }
+      detail: { number: directions[turn.index].number, interrupted: interrupted || reducedMotion.matches || !wheelVisible || document.hidden }
     }));
   }
 
@@ -263,7 +888,7 @@ SOFTWARE.
   function turnNavigationTo(index, immediate = false) {
     const instant = immediate || reducedMotion.matches || !wheelVisible || document.hidden;
     if (navigationTurn?.index === index) {
-      if (instant) settleNavigationTurn();
+      if (instant) settleNavigationTurn(true);
       return;
     }
     // Retarget from the last drawn angle, never from the previous destination.
@@ -273,14 +898,15 @@ SOFTWARE.
       duration: 1250 + 650 * Math.abs(navigationOffset - destination) / fullCircle
     };
     if (instant || destination === navigationOffset) {
-      settleNavigationTurn();
+      settleNavigationTurn(instant);
       return;
     }
     buttons.forEach(button => button.classList.remove("is-top"));
     wheel.dataset.turnState = "turning";
     delete wheel.dataset.topDirection;
     window.dispatchEvent(new CustomEvent("hub:navigation-started", {
-      detail: { number: directions[index].number }
+      detail: { number: directions[index].number, from: navigationTurn.from, to: navigationTurn.to,
+        delta: navigationTurn.to - navigationTurn.from, duration: navigationTurn.duration }
     }));
     beginOrbit();
   }
@@ -334,6 +960,10 @@ SOFTWARE.
 
   // Единая живая поверхность: край образован теми же точками, что и внутренность.
   function drawParticleField(time) {
+    if (window.HubFluidField) {
+      window.HubFluidField.render({canvas: particleCanvas, ctx: particleContext, time, reducedMotion: reducedMotion.matches});
+      return;
+    }
     if (!particleContext) return;
     const ctx = particleContext;
     const scale = particleCanvas.width / 600;
@@ -984,7 +1614,8 @@ SOFTWARE.
       function scrollToChosen() {
         panelScrollTimer = null;
         if (chosen !== index || window.innerWidth > 1130) return;
-        if (navigationTurn?.index === index) {
+        const rimSpeed = Math.abs(window.HubFieldNavigation?.getState?.().rimVelocity || 0);
+        if (navigationTurn?.index === index || rimSpeed > .045) {
           panelScrollTimer = window.setTimeout(scrollToChosen, 60);
           return;
         }
@@ -1027,6 +1658,7 @@ SOFTWARE.
   }
   function endOrbit() {
     settleNavigationTurn();
+    window.dispatchEvent(new CustomEvent("hub:field-pause"));
     if (frameId !== null) cancelAnimationFrame(frameId);
     frameId = null;
     lastTime = null;
@@ -1068,6 +1700,7 @@ SOFTWARE.
   window.addEventListener("hashchange", revealFragment);
   select(chosen, true);
   revealFragment();
+  window.addEventListener("hub:field-redraw", () => drawParticleField(performance.now()));
   resizeParticleCanvas();
   drawOrbit();
 
