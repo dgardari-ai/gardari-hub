@@ -1615,8 +1615,30 @@ SOFTWARE.
     // Fill each word's remaining row with the same yellow as the navigation.
     const list = synthesis.querySelector('.author-disciplines');
     list.style.removeProperty('font-size');
-    let wordStyle = getComputedStyle(list);
     const ink = document.createElement('canvas').getContext('2d');
+    if (window.innerWidth <= 700) {
+      // Phone words keep the fitted baseline; the second pass reduces the first pass by 30%.
+      const phoneStyle = getComputedStyle(list);
+      const legacySize = Math.max(12, Math.min(column * .14, 22));
+      const legacyTracking = (parseFloat(phoneStyle.letterSpacing) || 0) /
+        (parseFloat(phoneStyle.fontSize) || legacySize) * legacySize;
+      ink.font = [phoneStyle.fontStyle, phoneStyle.fontWeight, legacySize + 'px', phoneStyle.fontFamily].join(' ');
+      const legacyLongest = Math.max(1, ...directions.flatMap(item => item.disciplines || []).map(word =>
+        ink.measureText(word).width + legacyTracking * word.length));
+      const legacyBudget = Math.max(1, column - legacySize * .18 - 4);
+      const legacyFitted = legacyLongest > legacyBudget
+        ? Math.max(10, legacySize * legacyBudget / legacyLongest) : legacySize;
+      list.style.setProperty('--phone-discipline-size', (legacyFitted * 1.4).toFixed(4) + 'px');
+      list.style.setProperty('--phone-list-right-air', getComputedStyle(scope).paddingRight);
+      synthesis.style.setProperty('--phone-card-left-air', getComputedStyle(scope).paddingLeft);
+      synthesis.style.setProperty('--phone-card-right-air', getComputedStyle(scope).paddingRight);
+    } else {
+      list.style.removeProperty('--phone-discipline-size');
+      list.style.removeProperty('--phone-list-right-air');
+      synthesis.style.removeProperty('--phone-card-left-air');
+      synthesis.style.removeProperty('--phone-card-right-air');
+    }
+    let wordStyle = getComputedStyle(list);
     const setInkFont = () => { ink.font = [wordStyle.fontStyle, wordStyle.fontWeight, wordStyle.fontSize, wordStyle.fontFamily].join(' '); };
     setInkFont();
     const fontSize = parseFloat(wordStyle.fontSize) || 22;

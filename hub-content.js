@@ -265,8 +265,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d02-subtitle": {
@@ -341,8 +343,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d03-text": {
@@ -351,8 +355,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d04-text": {
@@ -361,8 +367,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d05-text": {
@@ -371,8 +379,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d06-text": {
@@ -381,8 +391,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d07-text": {
@@ -391,8 +403,10 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "24px"
       },
       "mobile": {
-        "font-size": "18px",
-        "line-height": "23px"
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
       }
     },
     "d01-line-heading": {
@@ -531,36 +545,57 @@ window.GARDARI_HUB_CONTENT = {
     "d01-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d02-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d03-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d04-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d05-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d06-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d07-disciplines": {
       "all": {
         "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
       }
     },
     "d01-detail": {

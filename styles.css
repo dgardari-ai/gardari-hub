@@ -485,3 +485,41 @@ p { text-wrap: pretty; }
 .author-disciplines.word-fold-ready .author-discipline-fill{position:relative;transform-origin:50% 0%;backface-visibility:hidden}
 .author-disciplines.word-fold-ready .author-discipline-fill::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.22) 42%,rgba(255,255,255,.26));opacity:var(--word-fold-crease,0)}
 @media(prefers-reduced-motion:reduce){.author-disciplines .word-fold-piece,.author-disciplines.word-fold-ready .author-discipline-fill{transform:none!important;opacity:1!important}.author-disciplines .word-fold-piece::after,.author-disciplines.word-fold-ready .author-discipline-fill::after{opacity:0!important}}
+
+
+/* Phone-only author refinements; tablet and desktop retain their existing geometry. */
+@media (max-width: 700px) {
+  .wheel-particles { transform: scale(.972); }
+  .author-synthesis { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
+  .author-disciplines {
+    min-width: 0; width: calc(100% + var(--phone-list-right-air, 16px));
+    font-size: var(--phone-discipline-size, clamp(16.8px, calc(var(--author-axis-column, 150px) * .196), 30.8px));
+    -webkit-text-stroke: 0;
+  }
+  .panel-visual-title h2 { font-size: clamp(27.72px, 7.854vw, 48.51px); -webkit-text-stroke: .25px currentColor; }
+  .direction-panel .contact-icon,
+  .direction-panel .panel-cta--author,
+  .direction-panel .panel-cta--route {
+    width: calc(var(--author-action) * .72);
+    height: calc(var(--author-action) * .72);
+  }
+  .panel-cta-chevron { width: 21.6px; }
+}
+
+
+/* The phone summary spans the card; type/color remain editable mobile source styles. */
+@media (max-width: 700px) {
+  .direction-panel .author-synthesis .panel-description-lead {
+    width: calc(100% + var(--phone-card-left-air, 16px) + var(--phone-card-right-air, 16px));
+    max-width: none;
+    margin-left: calc(-1 * var(--phone-card-left-air, 16px));
+    padding: 14px var(--phone-card-right-air, 16px) 14px var(--phone-card-left-air, 16px);
+  }
+  .panel-contact-row { gap: 8px; }
+}
+@media (max-width: 420px) {
+  .panel-contact-row { gap: 7px; }
+}
+@media (max-width: 340px) {
+  #direction-panel[data-direction="0.6"] .panel-visual-title h2 { letter-spacing: -.07em; }
+}

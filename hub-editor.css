@@ -3,7 +3,7 @@
 #direction-panel[data-direction="0.1"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
 @media(max-width:700px){#direction-panel[data-direction="0.1"] .panel-info-eyebrow{font-size:10px !important;margin-top:0px !important}}
 #direction-panel[data-direction="0.1"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.1"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.1"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.2"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
 @media(max-width:700px){#direction-panel[data-direction="0.2"] .panel-info-eyebrow{font-size:10px !important;margin-top:0px !important}}
 #direction-panel[data-direction="0.3"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
@@ -17,17 +17,17 @@
 #direction-panel[data-direction="0.7"] .panel-info-eyebrow{color:#202124 !important;font-size:12px !important;margin-top:13px !important}
 @media(max-width:700px){#direction-panel[data-direction="0.7"] .panel-info-eyebrow{font-size:10px !important;margin-top:0px !important}}
 #direction-panel[data-direction="0.2"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.2"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.2"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.3"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.3"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.3"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.4"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.4"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.4"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.5"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.5"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.5"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.6"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.6"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.6"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.7"] [data-hub-copy="text"]{font-size:19px !important;line-height:24px !important}
-@media(max-width:700px){#direction-panel[data-direction="0.7"] [data-hub-copy="text"]{font-size:18px !important;line-height:23px !important}}
+@media(max-width:700px){#direction-panel[data-direction="0.7"] [data-hub-copy="text"]{font-size:14px !important;line-height:1.344 !important;color:#fff !important;background-color:var(--ink) !important}}
 #direction-panel[data-direction="0.1"] [data-hub-line="heading"][data-hub-line-scope="direction"]{height:0.25px !important;background-color:#202124 !important}
 #direction-panel[data-direction="0.2"] [data-hub-line="heading"][data-hub-line-scope="direction"]{height:0.25px !important;background-color:#202124 !important}
 #direction-panel[data-direction="0.3"] [data-hub-line="heading"][data-hub-line-scope="direction"]{height:0.25px !important;background-color:#202124 !important}
@@ -57,11 +57,18 @@
 #direction-panel[data-direction="0.6"] .panel-context{font-size:8px !important}
 #direction-panel[data-direction="0.7"] .panel-context{font-size:8px !important}
 #direction-panel[data-direction="0.1"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.1"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.2"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.2"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.3"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.3"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.4"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.4"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.5"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.5"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.6"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.6"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.7"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+@media(max-width:700px){#direction-panel[data-direction="0.7"] [data-hub-copy="disciplines"]{line-height:0.9384 !important}}
 #direction-panel[data-direction="0.1"] [data-hub-copy="detail"]{color:#565c61 !important}
 #direction-panel[data-direction="0.1"] [data-hub-copy="more0"]{color:#565c61 !important}
