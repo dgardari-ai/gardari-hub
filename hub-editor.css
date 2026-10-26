@@ -63,3 +63,5 @@
 #direction-panel[data-direction="0.5"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
 #direction-panel[data-direction="0.6"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
 #direction-panel[data-direction="0.7"] [data-hub-copy="disciplines"]{line-height:1.173 !important}
+#direction-panel[data-direction="0.1"] [data-hub-copy="detail"]{color:#565c61 !important}
+#direction-panel[data-direction="0.1"] [data-hub-copy="more0"]{color:#565c61 !important}
