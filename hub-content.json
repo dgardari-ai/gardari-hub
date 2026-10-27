@@ -455,7 +455,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d02-nav": {
@@ -463,7 +469,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d03-nav": {
@@ -471,7 +483,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d04-nav": {
@@ -479,7 +497,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d05-nav": {
@@ -487,7 +511,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d06-nav": {
@@ -495,7 +525,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d07-nav": {
@@ -503,7 +539,13 @@
         "font-size": "12px"
       },
       "mobile": {
-        "font-size": "8.5px"
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
       }
     },
     "d01-category": {
@@ -606,10 +648,284 @@
       "all": {
         "color": "#565c61"
       }
+    },
+    "d03-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "d01-heading": {
+      "mobile": {
+        "font-size": "40px"
+      }
+    },
+    "mobile-contacts-caption": {
+      "mobile": {
+        "font-family": "var(--label-font)",
+        "font-size": "3.4vw",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
+      }
+    },
+    "mobile-telegram-caption": {
+      "mobile": {
+        "font-family": "var(--label-font)",
+        "font-size": "3.4vw",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
+      }
+    },
+    "d01-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d01-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d02-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d02-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d03-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d03-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d04-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d04-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d05-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d05-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d06-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d06-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d07-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d07-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d02-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "d04-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "d05-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "d06-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "d07-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
+    "phone-corners": {
+      "mobile": {
+        "--phone-corner-radius": "12px"
+      }
     }
   },
   "features": {
     "aboutJourney": false,
     "directionComposition": true
+  },
+  "mobileContacts": {
+    "number": "0.8",
+    "title": "Контакты для связи",
+    "head": [
+      "Контакты",
+      "для связи"
+    ],
+    "category": "КОНТАКТЫ",
+    "image": "./assets/hub-contacts.jpg",
+    "imageAlt": "Денис Гардари работает над рукописью",
+    "imagePosition": "50% 50%",
+    "groups": [
+      {
+        "id": "personal",
+        "title": "Денис Гардари",
+        "items": [
+          {
+            "id": "telegram",
+            "label": "Телеграм-канал",
+            "text": "@gardariart",
+            "url": "https://t.me/gardariart",
+            "icon": "telegram"
+          },
+          {
+            "id": "instagram",
+            "label": "Инстаграм",
+            "text": "@denisgardari",
+            "url": "https://www.instagram.com/denisgardari/",
+            "icon": "instagram"
+          },
+          {
+            "id": "vk",
+            "label": "ВКонтакте",
+            "text": "vk.com/gardari",
+            "url": "https://vk.com/gardari",
+            "icon": "vk"
+          },
+          {
+            "id": "email",
+            "label": "Почта",
+            "text": "hub@gardari.art",
+            "url": "mailto:hub@gardari.art",
+            "icon": "email"
+          }
+        ]
+      },
+      {
+        "id": "bureau",
+        "title": "Концептуальное Бюро",
+        "items": [
+          {
+            "id": "website",
+            "label": "Сайт КБ",
+            "text": "kb.gardari.art",
+            "url": "https://kb.gardari.art",
+            "icon": "website"
+          },
+          {
+            "id": "email",
+            "label": "Почта КБ",
+            "text": "kb@gardari.art",
+            "url": "mailto:kb@gardari.art",
+            "icon": "email"
+          }
+        ]
+      },
+      {
+        "id": "gallery",
+        "title": "Арт-галерея",
+        "items": [
+          {
+            "id": "website",
+            "label": "Сайт галереи",
+            "text": "gallery.gardari.art",
+            "url": "https://gallery.gardari.art",
+            "icon": "website"
+          },
+          {
+            "id": "email",
+            "label": "Почта галереи",
+            "text": "gallery@gardari.art",
+            "url": "mailto:gallery@gardari.art",
+            "icon": "email"
+          },
+          {
+            "id": "phone",
+            "label": "Телефон галереи",
+            "text": "+7 (343) 375-89-87",
+            "url": "tel:+73433758987",
+            "icon": "phone"
+          },
+          {
+            "id": "address",
+            "label": "Адрес галереи",
+            "text": "Екатеринбург, ул. Азина, 22/2, офис 8",
+            "url": "https://yandex.ru/maps/?text=%D0%95%D0%BA%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%BD%D0%B1%D1%83%D1%80%D0%B3%2C%20%D1%83%D0%BB.%20%D0%90%D0%B7%D0%B8%D0%BD%D0%B0%2C%2022/2%2C%20%D0%BE%D1%84%D0%B8%D1%81%208",
+            "icon": "location"
+          }
+        ]
+      },
+      {
+        "id": "club",
+        "title": "Клуб Гардари",
+        "items": [
+          {
+            "id": "website",
+            "label": "Сайт клуба",
+            "text": "club.gardari.art",
+            "url": "https://club.gardari.art",
+            "icon": "website"
+          },
+          {
+            "id": "email",
+            "label": "Почта клуба",
+            "text": "club@gardari.art",
+            "url": "mailto:club@gardari.art",
+            "icon": "email"
+          }
+        ]
+      }
+    ]
   }
 }

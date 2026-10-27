@@ -701,6 +701,9 @@ SOFTWARE.
   const fullCircle = 2 * Math.PI;
   const nodeAngles = directions.map((_, i) => -Math.PI / 2 + i * fullCircle / directions.length);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const phoneMedia = window.matchMedia("(max-width: 700px)");
+  const originalWheelLabel = wheel.getAttribute("aria-label");
+  let phoneUtility = null;
   let chosen = directions.findIndex(item => item.number === "0.1");
   let panelScrollTimer = null;
   let progress = 0;
@@ -982,6 +985,7 @@ SOFTWARE.
 
   // Единая живая поверхность: край образован теми же точками, что и внутренность.
   function drawParticleField(time) {
+    if (phoneMedia.matches) return;
     if (window.HubFluidField) {
       window.HubFluidField.render({canvas: particleCanvas, ctx: particleContext, time, reducedMotion: reducedMotion.matches});
       return;
@@ -1103,7 +1107,7 @@ SOFTWARE.
   }
 
   function trackPointer(event) {
-    if (event.pointerType === "touch") return;
+    if (phoneMedia.matches || event.pointerType === "touch") return;
     const rect = wheel.getBoundingClientRect();
     if (!pointer.active) nextWordAt = performance.now() + 1600;
     pointer.targetX = Math.max(-1, Math.min(1, (event.clientX - rect.left - rect.width / 2) / (rect.width * .34)));
@@ -1285,6 +1289,8 @@ SOFTWARE.
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     let textNode = null, offset = -1, candidate;
     while ((candidate = walker.nextNode())) {
+      // The phone number now lives in its badge; hidden inline labels have no optical edge.
+      if (!candidate.parentElement?.getClientRects().length) continue;
       offset = candidate.textContent.search(/\S/u);
       if (offset !== -1) {textNode = candidate;break;}
     }
@@ -1308,6 +1314,41 @@ SOFTWARE.
   function alignHeadingLines(heading, lines, context) {
     const axis = heading.getBoundingClientRect().left;
     lines.forEach(line => alignOpticalLeft(line, axis, context));
+  }
+
+  // Fit native phone title lines before the fold animation measures their glyphs.
+  function fitPhoneHeading(heading, lines) {
+    heading.style.removeProperty('--phone-heading-size');
+    heading.style.removeProperty('--phone-heading-tracking');
+    if (window.innerWidth > 700) return;
+    const photo = heading.closest('.direction-panel')?.querySelector('.panel-circle');
+    if (!photo) return;
+    const photoBox = photo.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
+    const style = getComputedStyle(heading), requested = parseFloat(style.fontSize);
+    // Preserve the accepted heading size: size fitting uses the former photo boundary.
+    const formerPhotoLeft = photoBox.right - photoBox.width / 1.15;
+    const formerBudget = Math.max(1, formerPhotoLeft - headingBox.left - 6);
+    const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
+    const widths = () => lines.map(line => {
+      const range = document.createRange(); range.selectNodeContents(line);
+      return range.getBoundingClientRect().width + stroke;
+    });
+    const longest = Math.max(1, ...widths());
+    if (longest > formerBudget && Number.isFinite(requested))
+      heading.style.setProperty('--phone-heading-size', (requested * formerBudget / longest).toFixed(4) + 'px');
+    // Keep authored40px and other sizes; only tracking clears the enlarged circle.
+    const budget = Math.max(1, photoBox.left - headingBox.left - 6);
+    for (let pass = 0; pass < 3; pass++) {
+      const actual = getComputedStyle(heading), tracking = parseFloat(actual.letterSpacing) || 0;
+      const actualSize = parseFloat(actual.fontSize) || requested;
+      const measured = widths();
+      const reduction = Math.max(0, ...measured.map((width, index) =>
+        (width - budget) / Math.max(1, Array.from(lines[index].textContent).length)));
+      if (reduction <= .01) break;
+      const next = Math.max(-actualSize * .13, tracking - reduction - .02);
+      if (next >= tracking - .001) break;
+      heading.style.setProperty('--phone-heading-tracking', next.toFixed(6) + 'px');
+    }
   }
 
   // Paper-fold entrance and cursor refold, adapted for the existing two-line type.
@@ -1360,6 +1401,7 @@ SOFTWARE.
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;pieces = [];
       lines.forEach((line, index) => {line.textContent = texts[index];});
+      fitPhoneHeading(heading, lines);
       alignHeadingLines(heading, lines, opticalContext);
       if (reducedMotion.matches) {heading.dataset.foldState = 'still';return;}
       const headingBox = heading.getBoundingClientRect();
@@ -1581,32 +1623,130 @@ SOFTWARE.
     };
   }
 
-  // Match the space below the photo to its real horizontal space from the title.
+  // The first paragraph keeps its accepted top while the larger photo enters its first line.
+  function wrapPhonePhoto(photo, first) {
+    let spacer = first.querySelector('.phone-photo-wrap');
+    if (!spacer) {
+      spacer = document.createElement('span'); spacer.className = 'phone-photo-wrap';
+      spacer.setAttribute('aria-hidden', 'true'); first.prepend(spacer);
+    }
+    const p = first.getBoundingClientRect(), image = photo.getBoundingClientRect();
+    const clearance = 6, radius = image.width / 2 + clearance;
+    const tail = Math.max(0, image.bottom + clearance - p.top);
+    if (tail <= .01) {spacer.remove(); return;}
+    const width = Math.max(1, p.right - image.left + clearance);
+    const centerX = image.left + image.width / 2 - (p.right - width);
+    const centerY = image.top + image.height / 2 - p.top;
+    spacer.style.width = width.toFixed(4) + 'px';
+    spacer.style.height = tail.toFixed(4) + 'px';
+    spacer.style.shapeOutside = 'circle(' + radius.toFixed(4) + 'px at ' + centerX.toFixed(4) + 'px ' + centerY.toFixed(4) + 'px)';
+    spacer.dataset.photoWrap = 'circle';
+  }
+
   function alignPhotoCopyGap(scope) {
     const photo = scope?.querySelector('.panel-circle');
     const title = scope?.querySelector('.panel-visual-title h2');
     const row = scope?.querySelector('.panel-visual-row');
     const copy = scope?.querySelector('.panel-description');
     const first = copy?.querySelector('.panel-description-copy p');
-    if (!photo || !title || !row || !copy || !first) return;
+    if (!photo || !title || !row) return;
     const photoBox = photo.getBoundingClientRect();
-    const horizontal = Math.max(0, title.getBoundingClientRect().left - photoBox.right);
+    const titleBox = title.getBoundingClientRect();
+    const mobile = window.innerWidth <= 700;
+    const card = mobile ? scope.querySelector('.mobile-card') || scope : scope;
+    const horizontal = Math.max(0, mobile ? photoBox.left - titleBox.right : titleBox.left - photoBox.right);
+    if (mobile) {
+      const radius = photoBox.width / 2 + card.getBoundingClientRect().right - photoBox.right;
+      scope.style.setProperty('--phone-card-corner', radius.toFixed(4) + 'px');
+      const contactsBody = scope.querySelector('.mobile-contacts-body');
+      if (contactsBody) contactsBody.style.setProperty('--contacts-group-right-air', getComputedStyle(card).paddingRight);
+      if (scope.style.getPropertyValue('--photo-copy-gap') !== '14px') scope.style.setProperty('--photo-copy-gap', '14px');
+      if (first) wrapPhonePhoto(photo, first);
+      return;
+    }
+    if (!copy || !first) return;
+    first.querySelector('.phone-photo-wrap')?.remove();
+    scope.style.removeProperty('--phone-card-corner');
     const rowExtra = row.getBoundingClientRect().bottom - photoBox.bottom;
     const textInset = first.getBoundingClientRect().top - copy.getBoundingClientRect().top;
-    // A taller phone title must still clear the paragraph instead of overlapping it.
     const value = Math.max(0, horizontal - rowExtra - textInset).toFixed(4) + 'px';
     if (scope.style.getPropertyValue('--photo-copy-gap') !== value) scope.style.setProperty('--photo-copy-gap', value);
+  }
+
+  function alignPhoneWordAction(scope) {
+    const synthesis = scope?.querySelector('.author-synthesis');
+    const action = synthesis?.querySelector('.mobile-word-cta');
+    const photo = scope?.querySelector('.panel-circle');
+    const list = synthesis?.querySelector('.author-disciplines');
+    if (!action || !photo || !list) return;
+    const keys = ['--word-action-left', '--word-action-top', '--word-action-size', '--word-action-halo'];
+    if (window.innerWidth > 700) {
+      keys.forEach(key => synthesis.style.removeProperty(key));
+      return;
+    }
+    const photoBox = photo.getBoundingClientRect(), box = synthesis.getBoundingClientRect();
+    const listBox = list.getBoundingClientRect(), rows = Array.from(list.children);
+    const fill = rows[0]?.querySelector('.author-discipline-fill');
+    const step = rows.length > 1 ? rows[1].offsetTop - rows[0].offsetTop : 0;
+    const stripe = fill ? parseFloat(getComputedStyle(fill).height) || 0 : 0;
+    const halo = Math.max(0, step - stripe);
+    const lower = scope.querySelector('.panel-cta');
+    if (!lower) return;
+    const size = (photoBox.width + lower.getBoundingClientRect().width) / 2;
+    const sizeValue = size.toFixed(4) + 'px';
+    if (synthesis.style.getPropertyValue('--word-action-size') !== sizeValue)
+      synthesis.style.setProperty('--word-action-size', sizeValue);
+    const actionBox = action.getBoundingClientRect();
+    const values = [photoBox.right - actionBox.width - box.left,
+      listBox.top - box.top + (listBox.height - actionBox.height) / 2,
+      size, halo];
+    keys.forEach((key, index) => {
+      const value = values[index].toFixed(4) + 'px';
+      if (synthesis.style.getPropertyValue(key) !== value) synthesis.style.setProperty(key, value);
+    });
+  }
+
+  // Contact stripes start at lowercase x-height and extend down to the underline.
+  function alignMobileContactRules(scope) {
+    if (window.innerWidth > 700 || scope?.dataset.direction !== '0.8') return;
+    const ink = document.createElement('canvas').getContext('2d');
+    if (!ink) return;
+    scope.querySelectorAll('.mobile-contact-link').forEach(row => {
+      const word = row.querySelector('.mobile-contact-value');
+      if (!word || !row.querySelector('.mobile-contact-fill')) return;
+      const style = getComputedStyle(word), size = parseFloat(style.fontSize) || 28 * 2 / 3;
+      ink.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+      const xHeight = ink.measureText('х').actualBoundingBoxAscent || ink.measureText('x').actualBoundingBoxAscent || size * .5;
+      const marker = document.createElement('span'); marker.setAttribute('aria-hidden', 'true');
+      marker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
+      word.append(marker);
+      const rowStyle = getComputedStyle(row);
+      const origin = row.getBoundingClientRect().top + (parseFloat(rowStyle.paddingTop) || 0) + (parseFloat(rowStyle.borderTopWidth) || 0);
+      const top = marker.getBoundingClientRect().top - origin - xHeight;
+      marker.remove();
+      const underlineOffset = parseFloat(style.textUnderlineOffset) || 3;
+      const underlineThickness = parseFloat(style.textDecorationThickness) || 1;
+      const values = {'--contact-rule-top':top, '--contact-rule-height':xHeight + underlineOffset + underlineThickness};
+      Object.entries(values).forEach(([key, value]) => {
+        const pixels = value.toFixed(4) + 'px';
+        if (row.style.getPropertyValue(key) !== pixels) row.style.setProperty(key, pixels);
+      });
+    });
   }
 
   // The author split shares the actual heading axis at every viewport width.
   function alignAuthorComposition(scope) {
     alignPhotoCopyGap(scope);
+    alignMobileContactRules(scope);
     const heading = scope?.querySelector('.panel-visual-title h2');
     const synthesis = scope?.querySelector('.author-synthesis');
     if (!heading || !synthesis) return;
     const style = getComputedStyle(heading);
     const gap = parseFloat(getComputedStyle(synthesis).columnGap) || 0;
-    const column = Math.max(0, heading.getBoundingClientRect().left - synthesis.getBoundingClientRect().left - gap);
+    // The phone list keeps its accepted type size independently of the new title axis.
+    const column = window.innerWidth <= 700
+      ? Math.max(0, scope.querySelector('.panel-circle').getBoundingClientRect().width / 1.3225 + 14 - gap)
+      : Math.max(0, heading.getBoundingClientRect().left - synthesis.getBoundingClientRect().left - gap);
     const value = column.toFixed(4) + 'px';
     if (scope.style.getPropertyValue('--author-axis-column') !== value) scope.style.setProperty('--author-axis-column', value);
     scope.style.setProperty('--author-display-font', style.fontFamily);
@@ -1617,6 +1757,7 @@ SOFTWARE.
     list.style.removeProperty('font-size');
     const ink = document.createElement('canvas').getContext('2d');
     if (window.innerWidth <= 700) {
+      const card = scope.querySelector('.mobile-card') || scope;
       // Phone words keep the fitted baseline; the second pass reduces the first pass by 30%.
       const phoneStyle = getComputedStyle(list);
       const legacySize = Math.max(12, Math.min(column * .14, 22));
@@ -1629,9 +1770,9 @@ SOFTWARE.
       const legacyFitted = legacyLongest > legacyBudget
         ? Math.max(10, legacySize * legacyBudget / legacyLongest) : legacySize;
       list.style.setProperty('--phone-discipline-size', (legacyFitted * 1.4).toFixed(4) + 'px');
-      list.style.setProperty('--phone-list-right-air', getComputedStyle(scope).paddingRight);
-      synthesis.style.setProperty('--phone-card-left-air', getComputedStyle(scope).paddingLeft);
-      synthesis.style.setProperty('--phone-card-right-air', getComputedStyle(scope).paddingRight);
+      list.style.setProperty('--phone-list-right-air', getComputedStyle(card).paddingRight);
+      synthesis.style.setProperty('--phone-card-left-air', getComputedStyle(card).paddingLeft);
+      synthesis.style.setProperty('--phone-card-right-air', getComputedStyle(card).paddingRight);
     } else {
       list.style.removeProperty('--phone-discipline-size');
       list.style.removeProperty('--phone-list-right-air');
@@ -1664,6 +1805,7 @@ SOFTWARE.
       word.parentElement.style.setProperty('--word-fill-height', height + 'px');
       word.parentElement.style.setProperty('--word-fill-top', Math.max(0, top) + 'px');
     });
+    alignPhoneWordAction(scope);
     const lead = synthesis.querySelector('.panel-description-lead');
     if (!lead) return;
     const clearFit = () => {
@@ -1725,7 +1867,16 @@ SOFTWARE.
       rule.style.left = (headingBox.left - titleBox.left) + 'px';
       rule.style.top = (baseline - titleBox.top + descent + stroke / 2 - rule.getBoundingClientRect().height / 2) + 'px';
       // clientWidth excludes the reserved scrollbar gutter; never create horizontal scroll.
-      const rightEdge = mobile ? panel.getBoundingClientRect().right - 1 : document.documentElement.clientWidth;
+      let rightEdge = document.documentElement.clientWidth;
+      if (mobile) {
+        const photo = title.closest('.direction-panel').querySelector('.panel-circle').getBoundingClientRect();
+        const radius = photo.width / 2, cx = photo.left + radius, cy = photo.top + photo.height / 2;
+        const lineY = baseline + descent + stroke / 2;
+        const dy = lineY - cy;
+        const intersects = Math.abs(dy) <= radius;
+        rightEdge = intersects ? cx - Math.sqrt(Math.max(0, radius * radius - dy * dy)) : photo.left;
+        rule.dataset.photoContact = intersects ? 'circle' : 'outside';
+      } else delete rule.dataset.photoContact;
       rule.style.width = Math.max(0, rightEdge - headingBox.left) + 'px';
       rule.style.visibility = 'visible';
     }
@@ -1739,6 +1890,14 @@ SOFTWARE.
     if (visualRow) observer?.observe(visualRow);
     const photo = visualRow?.querySelector('.panel-circle');
     if (photo) observer?.observe(photo);
+    const contactRows = title.closest('.direction-panel').querySelectorAll('.mobile-contact-link');
+    contactRows.forEach(row => {
+      observer?.observe(row);
+      const word = row.querySelector('.mobile-contact-value'); if (word) observer?.observe(word);
+    });
+    const contactStyles = contactRows.length && typeof MutationObserver === 'function' ? new MutationObserver(schedule) : null;
+    contactStyles?.observe(document.head, {childList:true, subtree:true, characterData:true});
+    if (contactRows.length) document.fonts?.addEventListener('loadingdone', schedule);
     window.addEventListener('resize', schedule, {passive:true});
     reducedMotion.addEventListener('change', schedule);
     if (document.fonts?.status !== 'loaded') document.fonts?.ready.then(schedule);
@@ -1746,7 +1905,8 @@ SOFTWARE.
     return () => {
       destroyed = true;
       if (frame !== null) cancelAnimationFrame(frame);
-      observer?.disconnect();
+      observer?.disconnect(); contactStyles?.disconnect();
+      if (contactRows.length) document.fonts?.removeEventListener('loadingdone', schedule);
       window.removeEventListener('resize', schedule);
       reducedMotion.removeEventListener('change', schedule);
     };
@@ -1764,14 +1924,44 @@ SOFTWARE.
       return '<p' + (className ? ' class="' + className + '"' : '') +
         ' data-hub-copy="' + key + '" data-hub-text="' + sid + '-' + key + '">' + copy + '</p>';
     };
+    const wordLink = item.number === '0.1'
+      ? 'href="' + (phoneMedia.matches ? '#contacts' : '#hub-contact-links') + '" data-phone-contacts="true" aria-label="Контакты для связи"'
+      : 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" aria-label="' + escapeHtml(item.action) + '"';
+    const wordAction = '<a class="mobile-word-cta" ' + wordLink + '>' +
+      '<svg class="mobile-word-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>';
     return '<div class="panel-description-copy author-composition">' +
       '<div class="panel-description-support author-opening">' + paragraph('detail', item.detail) + paragraph('more0', item.more?.[0]) + '</div>' +
       '<div class="author-synthesis">' +
         '<ul class="author-disciplines" data-hub-copy="disciplines" aria-label="Направления">' +
-          (item.disciplines || []).map(word => '<li><span class="author-discipline-word">' + escapeHtml(word) + '</span><span class="author-discipline-fill" aria-hidden="true"></span></li>').join('') + '</ul>' +
+          (item.disciplines || []).map(word => '<li><span class="author-discipline-word">' + escapeHtml(word) + '</span><span class="author-discipline-fill" aria-hidden="true"></span></li>').join('') + '</ul>' + wordAction +
         paragraph('text', item.text, 'panel-description-lead') +
       '</div>' +
       '<div class="panel-description-support author-closing">' + paragraph('more1', item.more?.[1]) + '</div></div>';
+  }
+
+  // A phone-only utility page leaves the seven canonical directions intact.
+  function mobileContactsMarkup(item) {
+    const heading = item.head.map((line, index) => '<span class="panel-heading-line" data-hub-text="d08-head' + index + '">' + escapeHtml(line) + '</span>').join(' ');
+    const groups = item.groups.map(group => '<section class="mobile-contact-group" data-contact-group="' + escapeHtml(group.id) + '">' +
+      '<h3 data-hub-text="d08-group-' + escapeHtml(group.id) + '"><span>' + escapeHtml(group.title) + '</span></h3>' +
+      '<div class="mobile-contact-list">' + group.items.map(entry => {
+        const key = group.id + '.' + entry.id, field = 'd08-' + group.id + '-' + entry.id;
+        const external = /^https?:\/\//.test(entry.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return '<a class="mobile-contact-link" data-mobile-contact="' + escapeHtml(key) + '" href="' + escapeHtml(entry.url) + '"' + external + '>' +
+          '<span class="mobile-contact-label" data-hub-text="' + field + '-label">' + escapeHtml(entry.label) + '</span>' +
+          '<span class="mobile-contact-value" data-hub-text="' + field + '-text">' + escapeHtml(entry.text) + '</span><span class="mobile-contact-fill" aria-hidden="true"></span></a>';
+      }).join('') + '</div></section>').join('');
+    return '<div class="mobile-card" role="region" aria-label="' + escapeHtml(item.title) + '">' +
+      '<div class="panel-visual-row"><div class="panel-circle panel-image-frame"><div class="photo-reveal-stage">' +
+      '<img data-hub-image="contacts" src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + ';filter:url(#hub-warm-mono)"></div><span class="photo-reveal-cover" aria-hidden="true"></span></div>' +
+      '<div class="panel-visual-title"><div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span data-hub-text="d08-category">' + escapeHtml(item.category) + '</span></div>' +
+      '<h2 data-hub-text="d08-heading">' + heading + '</h2>' +
+      '<span class="panel-heading-rule hub-line" aria-hidden="true"></span></div></div>' +
+      '<div class="mobile-contacts-body">' + groups + '</div></div>' +
+      '<span class="mobile-panel-number" aria-label="Раздел 0.8">0.8</span>' +
+      '<div class="mobile-contacts-actions"><button type="button" class="mobile-contacts-back" data-phone-contact-action="back">В РАЗДЕЛ 0.1 ДЕНИС ГАРДАРИ</button>' +
+      '<button type="button" class="mobile-contacts-top" data-phone-contact-action="top" aria-label="Наверх к меню" aria-controls="gardari-wheel">' +
+      '<svg class="mobile-contacts-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 15 7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></button></div>';
   }
 
   function panelMarkup(item) {
@@ -1793,26 +1983,167 @@ SOFTWARE.
       '<div class="panel-description-rule" aria-hidden="true"></div>' +
       '<div class="panel-description-support"><p>' + escapeHtml(item.detail) + '</p>' + more + '</div></div>';
     const copy = directionComposition ? directionCompositionMarkup(item) : legacyCopy;
+    const card = '<div class="mobile-card">' + visual + '<div class="panel-description' + (item.number === "0.1" ? ' panel-description--author' : '') + '">' + copy + '</div></div>' +
+      '<span class="mobile-panel-number" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>';
     if (item.number === "0.1") {
       const authorButtonAttributes = aboutEnabled
         ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
         : 'data-tooltip="Концепт Бюро" aria-label="Перейти к разделу 0.2" aria-controls="direction-panel"';
       const authorChevron = aboutEnabled ? 'm5 9 7 7 7-7' : 'm9 5 7 7-7 7';
-      return visual + '<div class="panel-description panel-description--author">' + copy + '</div>' +
-        '<div class="panel-contact-row" role="group" aria-label="' + (aboutEnabled ? 'Контакты и подробности об авторе' : 'Контакты и переход к следующему разделу') + '">' +
+      return card +
+        '<div id="hub-contact-links" class="panel-contact-row" role="group" aria-label="' + (aboutEnabled ? 'Контакты и подробности об авторе' : 'Контакты и переход к следующему разделу') + '">' +
           authorContacts.map(renderContact).join('') +
           '<button type="button" class="panel-cta panel-cta--author" ' + authorButtonAttributes + '>' +
             '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="' + authorChevron + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg>' +
           '</button></div>';
     } else {
       const linkProps = 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer"';
-      return visual + '<div class="panel-description">' + copy + '</div>' +
+      return card +
         '<div class="panel-route-row" role="group" aria-label="Переход в раздел ' + escapeHtml(item.short) + '">' +
           '<a class="panel-route-pill" ' + linkProps + '>' + escapeHtml(item.action) + '</a>' +
           '<a class="panel-cta panel-cta--route" ' + linkProps + ' aria-label="' + escapeHtml(item.action) + '">' +
             '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>' +
         '</div>';
     }
+  }
+
+  // The same seven canonical controls become phone tiles; utilities are separate actions.
+  function setupPhoneNavigation() {
+    buttons.forEach(button => {
+      button.classList.add('mobile-matrix-tile');
+      const face = document.createElement('span'); face.className = 'mobile-tile-face';
+      face.append(button.querySelector('.wheel-node-number'), button.querySelector('.wheel-node-name'));
+      button.replaceChildren(face);
+    });
+    const utility = (id, number, caption, link) => {
+      const node = document.createElement(link ? 'a' : 'button');
+      node.id = id; node.className = 'mobile-matrix-tile mobile-nav-utility';
+      if (link) {node.href = link; node.target = '_blank'; node.rel = 'noopener noreferrer';}
+      else node.type = 'button';
+      node.setAttribute('aria-label', caption.replace(/\n/g, ' '));
+      const face = document.createElement('span'); face.className = 'mobile-tile-face';
+      const badge = document.createElement('span'); badge.className = 'wheel-node-number'; badge.textContent = number;
+      const name = document.createElement('span'); name.className = 'wheel-node-name'; renderNavigationCaption(name, caption);
+      face.append(badge, name); node.append(face); wheel.append(node); return node;
+    };
+    const contacts = utility('mobile-contact-tile', '0.8', 'Контакты\nдля связи');
+    const telegram = utility('mobile-telegram-tile', '0.9', 'Телеграм\nканал', 'https://t.me/gardariart');
+    contacts.addEventListener('click', event => {
+      if (!phoneMedia.matches || event.defaultPrevented) return;
+      event.preventDefault();
+      openMobileContacts();
+    });
+    telegram.addEventListener('click', event => {
+      if (!phoneMedia.matches || event.defaultPrevented) return;
+      phoneUtility = 'telegram'; syncPhoneNavigationState();
+    });
+    wheel.dataset.phoneNavReady = 'true';
+  }
+
+  // The accepted outline is an overlay, so the original editable border and fill stay native.
+  function setupPhoneTileOutlines() {
+    const faces = Array.from(wheel.querySelectorAll('.mobile-tile-face'));
+    const records = faces.map(face => {
+      const outline = document.createElementNS(ns, 'svg');
+      outline.classList.add('phone-tile-outline'); outline.setAttribute('aria-hidden', 'true');
+      outline.setAttribute('focusable', 'false'); outline.setAttribute('preserveAspectRatio', 'none');
+      const mask = document.createElementNS(ns, 'rect'), body = document.createElementNS(ns, 'path');
+      outline.append(mask, body); face.prepend(outline); return {face, outline, mask, body};
+    });
+    function draw() {
+      if (!phoneMedia.matches) return;
+      records.forEach(({face, outline, mask, body}) => {
+        const box = face.getBoundingClientRect();
+        if (box.width < 1 || box.height < 1) return;
+        const badge = face.querySelector('.wheel-node-number').getBoundingClientRect(), style = getComputedStyle(face);
+        const border = side => Math.max(0, parseFloat(style['border' + side + 'Width']) || 0);
+        const bL = border('Left'), bR = border('Right'), bT = border('Top'), bB = border('Bottom');
+        const stroke = ['none', 'hidden'].includes(style.borderTopStyle) ? 0 : bT;
+        const edge = stroke / 2, right = box.width - edge, bottom = box.height - edge;
+        const normal = Math.max(1, Math.min(parseFloat(style.borderTopRightRadius) || 12, Math.min(box.width, box.height) / 3));
+        const radius = Math.max(0, normal - edge), notch = badge.width / 2 + 6.5 + edge;
+        const cx = badge.left - box.left + badge.width / 2, cy = badge.top - box.top + badge.height / 2, sum = notch + radius;
+        const top = {x:cx + Math.sqrt(Math.max(0, sum * sum - (edge + radius - cy) ** 2)), y:edge + radius};
+        const left = {x:edge + radius, y:cy + Math.sqrt(Math.max(0, sum * sum - (edge + radius - cx) ** 2))};
+        const tangent = point => ({x:cx + notch / sum * (point.x - cx), y:cy + notch / sum * (point.y - cy)});
+        const tt = tangent(top), tl = tangent(left);
+        outline.style.left = -bL + 'px'; outline.style.top = -bT + 'px';
+        outline.style.width = 'calc(100% + ' + (bL + bR) + 'px)';
+        outline.style.height = 'calc(100% + ' + (bT + bB) + 'px)';
+        outline.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
+        mask.setAttribute('width', box.width); mask.setAttribute('height', box.height); mask.setAttribute('fill', 'var(--paper)');
+        body.setAttribute('d', ['M ' + top.x + ' ' + edge, 'H ' + (right - radius),
+          'A ' + radius + ' ' + radius + ' 0 0 1 ' + right + ' ' + (edge + radius),
+          'V ' + (bottom - radius), 'A ' + radius + ' ' + radius + ' 0 0 1 ' + (right - radius) + ' ' + bottom,
+          'H ' + (edge + radius), 'A ' + radius + ' ' + radius + ' 0 0 1 ' + edge + ' ' + (bottom - radius),
+          'V ' + left.y, 'A ' + radius + ' ' + radius + ' 0 0 1 ' + tl.x + ' ' + tl.y,
+          'A ' + notch + ' ' + notch + ' 0 0 0 ' + tt.x + ' ' + tt.y,
+          'A ' + radius + ' ' + radius + ' 0 0 1 ' + top.x + ' ' + edge, 'Z'].join(' '));
+        body.setAttribute('fill', style.backgroundColor); body.setAttribute('stroke', stroke > 0 ? style.borderTopColor : 'none');
+        body.setAttribute('stroke-width', String(stroke));
+        if (stroke > 0 && style.borderTopStyle === 'dashed') {
+          body.setAttribute('stroke-dasharray', (stroke * 3) + ' ' + (stroke * 2)); body.setAttribute('stroke-linecap', 'butt');
+        } else if (stroke > 0 && style.borderTopStyle === 'dotted') {
+          body.setAttribute('stroke-dasharray', '0 ' + (stroke * 2)); body.setAttribute('stroke-linecap', 'round');
+        } else {
+          body.removeAttribute('stroke-dasharray'); body.removeAttribute('stroke-linecap');
+        }
+        outline.dataset.normalRadius = String(normal); outline.dataset.filletRadius = String(radius); outline.dataset.gap = '6.5';
+      });
+    }
+    const observer = new ResizeObserver(draw); records.forEach(record => observer.observe(record.face));
+    const styles = new MutationObserver(draw);
+    styles.observe(document.head, {childList:true, subtree:true, characterData:true});
+    records.forEach(record => styles.observe(record.face, {attributes:true, attributeFilter:['style', 'class']}));
+    window.addEventListener('resize', draw, {passive:true}); phoneMedia.addEventListener('change', draw);
+    window.addEventListener('hub:mobile-ui-updated', draw); document.fonts?.ready.then(draw); draw();
+  }
+
+  function syncPhoneNavigationState() {
+    const phone = phoneMedia.matches;
+    buttons.forEach((button, index) => {
+      const active = index === chosen && (!phone || phoneUtility === null);
+      button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('is-mobile-active', phone && active);
+    });
+    for (const [id, key] of [['mobile-contact-tile', 'contacts'], ['mobile-telegram-tile', 'telegram']]) {
+      const node = document.getElementById(id);
+      if (!node) continue;
+      const active = phone && phoneUtility === key;
+      node.classList.toggle('is-mobile-active', active);
+      if (node.tagName === 'BUTTON') node.setAttribute('aria-pressed', String(active));
+    }
+    wheel.setAttribute('aria-label', phone ? 'Семь разделов, контакты и Телеграм-канал' : originalWheelLabel);
+  }
+
+  function syncPhonePanelControls() {
+    const item = directions[chosen];
+    const cta = panel.querySelector('.panel-cta');
+    if (!cta || !item) return;
+    const path = cta.querySelector('.panel-cta-chevron path');
+    if (phoneMedia.matches) {
+      cta.dataset.mobileTop = 'true'; delete cta.dataset.mobileNext;
+      cta.setAttribute('aria-label', 'Наверх к меню');
+      cta.setAttribute('aria-controls', 'direction-panel');
+      cta.removeAttribute('aria-expanded');
+      cta.setAttribute('data-tooltip', 'Наверх к меню');
+      path?.setAttribute('d', 'm5 15 7-7 7 7');
+      if (cta.tagName === 'A') {cta.setAttribute('href', '#main'); cta.removeAttribute('target'); cta.removeAttribute('rel');}
+    } else {
+      delete cta.dataset.mobileTop; delete cta.dataset.mobileNext;
+      if (item.number === '0.1') {
+        cta.setAttribute('aria-label', aboutEnabled ? 'Перейти к подробностям обо мне' : 'Перейти к разделу 0.2');
+        cta.setAttribute('data-tooltip', aboutEnabled ? 'Подробнее' : 'Концепт Бюро');
+        cta.setAttribute('aria-controls', aboutEnabled ? 'about-journey' : 'direction-panel');
+        if (aboutEnabled) cta.setAttribute('aria-expanded', String(!aboutJourney.hidden));
+        path?.setAttribute('d', aboutEnabled ? 'm5 9 7 7 7-7' : 'm9 5 7 7-7 7');
+      } else {
+        cta.setAttribute('aria-label', item.action); cta.removeAttribute('aria-controls'); cta.removeAttribute('data-tooltip');
+        cta.setAttribute('href', item.url); cta.setAttribute('target', '_blank'); cta.setAttribute('rel', 'noopener noreferrer');
+        path?.setAttribute('d', 'm9 5 7 7-7 7');
+      }
+    }
+    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:phoneMedia.matches,number:item.number}}));
   }
 
   // Measure all seven natural panels at the real column width. Scoped copies of
@@ -1886,6 +2217,7 @@ SOFTWARE.
     const item = directions[index];
     panel.dataset.direction = item.number;
     panel.innerHTML = panelMarkup(item);
+    syncPhonePanelControls();
     disposeHeadingMotion = attachHeadingMotion(panel.querySelector(".panel-visual-title h2"));
     alignAuthorComposition(panel);
     disposePanelAppearance = attachPanelAppearance(panel);
@@ -1893,9 +2225,55 @@ SOFTWARE.
     disposeWordBlockMotion = attachWordBlockMotion(panel);
   }
 
+  function clearContactsFragment() {
+    if (location.hash === '#contacts') history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  function openMobileContacts(immediate = false) {
+    const item = window.GARDARI_HUB_CONTENT.mobileContacts;
+    if (!phoneMedia.matches || !item) return;
+    if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
+    panelScrollTimer = null; phoneUtility = 'contacts';
+    disposeWordBlockMotion(); disposeHeadingMotion(); disposePanelAppearance(); disposeHeadingRule();
+    panel.dataset.direction = '0.8'; panel.innerHTML = mobileContactsMarkup(item);
+    if (aboutJourney) aboutJourney.hidden = true;
+    syncPhoneNavigationState();
+    disposeHeadingMotion = attachHeadingMotion(panel.querySelector('.panel-visual-title h2'));
+    alignAuthorComposition(panel); disposePanelAppearance = attachPanelAppearance(panel);
+    disposeHeadingRule = attachHeadingRule(panel.querySelector('.panel-visual-title'));
+    if (location.hash !== '#contacts') history.replaceState(null, '', location.pathname + location.search + '#contacts');
+    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:true, number:'0.8'}}));
+    if (!immediate) panelScrollTimer = setTimeout(() => {
+      panelScrollTimer = null;
+      if (phoneMedia.matches && panel.dataset.direction === '0.8') panel.scrollIntoView({behavior:reducedMotion.matches ? 'auto' : 'smooth', block:'start'});
+    }, 30);
+  }
+
+  function scrollPhoneToMenu() {
+    if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
+    panelScrollTimer = null;
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+
   panel.addEventListener("click", event => {
     const target = event.target;
-    if (!(target instanceof Element)) return;
+    if (event.defaultPrevented || !(target instanceof Element)) return;
+    const contactAction = target.closest('[data-phone-contact-action]');
+    if (phoneMedia.matches && contactAction && panel.contains(contactAction)) {
+      event.preventDefault();
+      if (contactAction.dataset.phoneContactAction === 'back') select(0);
+      else if (contactAction.dataset.phoneContactAction === 'top') scrollPhoneToMenu();
+      return;
+    }
+    const contacts = target.closest('.mobile-word-cta[data-phone-contacts]');
+    if (phoneMedia.matches && contacts && panel.contains(contacts)) {
+      event.preventDefault(); openMobileContacts();
+      return;
+    }
+    const top = target.closest(".panel-cta");
+    if (phoneMedia.matches && top && panel.contains(top)) {
+      event.preventDefault(); scrollPhoneToMenu(); return;
+    }
     const contact = target.closest(".contact-icon");
     if (contact && panel.contains(contact)) {
       contact.classList.remove("is-tapped");
@@ -1922,16 +2300,24 @@ SOFTWARE.
     if (!Number.isInteger(index) || index < 0 || index >= directions.length) return;
     if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
     panelScrollTimer = null;
+    if (panel.dataset.direction === '0.8') clearContactsFragment();
     chosen = index;
-    turnNavigationTo(index, !animateNavigation);
+    phoneUtility = null;
+    turnNavigationTo(index, !animateNavigation || phoneMedia.matches);
     if (directions[index].number !== "0.1" && aboutJourney) aboutJourney.hidden = true;
     buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
     dots.forEach((dot, i) => dot.classList.toggle("is-selected", i === index));
     dotTargets.forEach((target, i) => target.setAttribute("aria-pressed", String(i === index)));
     panel.classList.remove("is-leaving");
     renderPanel(index);
+    syncPhoneNavigationState();
     // Автоматическая орбита намеренно не сбрасывается и не останавливается.
-    if (!immediate && window.innerWidth <= 1130) {
+    if (!immediate && phoneMedia.matches) {
+      panelScrollTimer = window.setTimeout(() => {
+        panelScrollTimer = null;
+        if (chosen === index && phoneMedia.matches) panel.scrollIntoView({behavior: reducedMotion.matches ? "auto" : "smooth", block: "start"});
+      }, 30);
+    } else if (!immediate && window.innerWidth <= 1130) {
       let delay = 190;
       if (navigationTurn) {
         const elapsed = navigationTurn.startedAt === null ? 0 :
@@ -1976,10 +2362,10 @@ SOFTWARE.
     updateNavigationTurn(time);
     drawParticleField(time);
     drawOrbit();
-    if (wheelVisible && !document.hidden && !reducedMotion.matches) frameId = requestAnimationFrame(animate);
+    if (!phoneMedia.matches && wheelVisible && !document.hidden && !reducedMotion.matches) frameId = requestAnimationFrame(animate);
   }
   function beginOrbit() {
-    if (frameId !== null || !wheelVisible || document.hidden || reducedMotion.matches) return;
+    if (phoneMedia.matches || frameId !== null || !wheelVisible || document.hidden || reducedMotion.matches) return;
     lastTime = null;
     frameId = requestAnimationFrame(animate);
   }
@@ -2012,10 +2398,14 @@ SOFTWARE.
 
   // The source-owned editor bridge uses the same renderer as the public site.
   window.addEventListener("hub:select", event => {
+    if (event.detail?.number === '0.8') {openMobileContacts(true); return;}
     const index = directions.findIndex(item => item.number === event.detail?.number);
     select(index, true, event.detail?.animate === true);
   });
   function revealFragment() {
+    if (location.hash === '#contacts' && phoneMedia.matches) {
+      openMobileContacts(true); requestAnimationFrame(() => panel.scrollIntoView({block:'start'})); return;
+    }
     if (!aboutEnabled) return;
     const id = location.hash.slice(1);
     if (!["about-path", "about-art", "about-thinking"].includes(id)) return;
@@ -2025,7 +2415,21 @@ SOFTWARE.
     requestAnimationFrame(() => document.getElementById(id).scrollIntoView({block: "start"}));
   }
   window.addEventListener("hashchange", revealFragment);
+  setupPhoneNavigation();
+  setupPhoneTileOutlines();
+  phoneMedia.addEventListener('change', () => {
+    const hadContacts = panel.dataset.direction === '0.8';
+    phoneUtility = null;
+    if (hadContacts && !phoneMedia.matches) {clearContactsFragment(); renderPanel(chosen);}
+    if (phoneMedia.matches) {
+      endOrbit(); pointer.active = false; pointer.targetX = pointer.targetY = pointer.x = pointer.y = pointer.strength = 0;
+      nextWordAt = Infinity;
+    } else if (wheelVisible && !document.hidden && !reducedMotion.matches) beginOrbit();
+    syncPhoneNavigationState(); syncPhonePanelControls(); alignAuthorComposition(panel);
+  });
   select(chosen, true);
+  document.body.classList.add('phone-ui-ready');
+  if (phoneMedia.matches) endOrbit();
   revealFragment();
   window.addEventListener("hub:field-redraw", () => drawParticleField(performance.now()));
   resizeParticleCanvas();

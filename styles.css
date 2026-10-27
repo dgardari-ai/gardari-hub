@@ -523,3 +523,127 @@ p { text-wrap: pretty; }
 @media (max-width: 340px) {
   #direction-panel[data-direction="0.6"] .panel-visual-title h2 { letter-spacing: -.07em; }
 }
+
+
+/* Phone variant: title first, circular photo on the right, rubric below its rule. */
+@media (max-width: 700px) {
+  .direction-panel {
+    --mobile-photo: clamp(104.65px, 29.9vw, 149.5px);
+    padding-top: 16px;
+    border-top-right-radius: var(--phone-card-corner, calc(var(--mobile-photo) * .5 + 17px));
+  }
+  .panel-visual-row {
+    grid-template-columns: minmax(0, 1fr) var(--mobile-photo);
+    align-items: start;
+  }
+  .panel-circle {
+    grid-column: 2; grid-row: 1; justify-self: end;
+    transform: none;
+  }
+  .direction-panel .panel-visual-title {
+    grid-column: 1; grid-row: 1;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 0; min-height: var(--mobile-photo); text-align: left;
+  }
+  .panel-visual-title h2 {
+    order: 1; flex: none; align-self: flex-start;
+    font-size: var(--phone-heading-size, clamp(27.72px, 7.854vw, 48.51px));
+  }
+  .panel-context {
+    order: 2; align-self: stretch; margin: 8px 0 0;
+  }
+  .panel-info-eyebrow { display: none; }
+}
+
+
+/* Phone matrix and outside actions reuse the canonical seven controls and links. */
+.mobile-card,.mobile-tile-face{display:contents}
+.mobile-panel-number,.mobile-nav-utility{display:none}
+@media(max-width:700px){
+  body:not(.phone-ui-ready) .site-shell{visibility:hidden}
+  main{position:relative;z-index:1}
+  .wheel-column{display:block}
+  .wheel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;max-width:none;aspect-ratio:auto;margin:0;isolation:auto}
+  .wheel>.wheel-particles,.wheel>.wheel-geometry{display:none}
+  .wheel .mobile-matrix-tile{position:static;display:block;width:100%;height:auto;min-height:0;aspect-ratio:1;margin:0;padding:0;border:0;border-radius:0;background:transparent;transform:none;touch-action:manipulation;cursor:pointer}
+  .wheel .mobile-matrix-tile .mobile-tile-face{position:relative;display:flex;align-items:flex-end;justify-content:center;width:100%;height:100%;aspect-ratio:1;padding:0 5px 13px;border:1px solid var(--ink);border-radius:var(--phone-corner-radius,20px);border-top-left-radius:clamp(68px,20vw,75px);background:var(--paper)}
+  .wheel .mobile-matrix-tile .wheel-node-name{display:block;width:100%;font:700 3.4vw/1.05 Arial,Helvetica,sans-serif;letter-spacing:-.03em;text-transform:lowercase;transform:none;color:var(--ink)}
+  .wheel .mobile-matrix-tile .wheel-node-name-line{white-space:nowrap}
+  .wheel .mobile-matrix-tile .wheel-node-number{position:absolute;left:-1px;top:-1px;z-index:2;display:grid;place-items:center;width:clamp(22px,6vw,24px);height:clamp(22px,6vw,24px);border-radius:50%;background:#d2d5d8;color:var(--ink);font:400 9px/1 var(--label-font);transform:none}
+  .wheel .mobile-matrix-tile.is-mobile-active .wheel-node-number{background:var(--accent)}
+  .wheel .mobile-nav-utility{display:block}
+  .direction-panel{position:relative;padding:0;border:0;border-radius:0;overflow:visible;background:transparent;--phone-action-size:clamp(52px,14vw,60px)}
+  .direction-panel .mobile-card{display:block;width:100%;padding:16px 16px 24px;border:1px solid var(--ink);border-radius:var(--phone-corner-radius,20px);border-top-right-radius:var(--phone-card-corner,calc(var(--mobile-photo) * .5 + 17px));background:var(--paper);overflow:clip}
+  .mobile-panel-number{position:absolute;right:0;top:0;z-index:3;display:grid;place-items:center;width:clamp(22px,6vw,24px);height:clamp(22px,6vw,24px);border-radius:50%;background:var(--accent);color:var(--ink);font:400 9px/1 var(--label-font)}
+  .panel-context span:first-child,.panel-heading-rule{display:none}
+  .direction-panel .panel-contact-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;gap:clamp(8px,2.5vw,12px);margin-top:12px}
+  .direction-panel .panel-contact-row .contact-icon[data-contact="phone"]{display:none}
+  .direction-panel .panel-contact-row .contact-icon,.direction-panel .panel-contact-row .panel-cta--author{width:100%;max-width:68px;height:auto;aspect-ratio:1;margin:0;padding:0;justify-self:center;border-color:var(--ink);background:var(--paper);transform:none}
+  .direction-panel .panel-contact-row .panel-cta--author{background:var(--accent)}
+  .direction-panel .panel-route-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;margin-top:12px}
+  .direction-panel .panel-route-row .panel-route-pill{width:100%;max-width:none;height:var(--phone-action-size);padding:0 16px;border-color:#000;background:#000;color:#fff;font-size:clamp(10.5px,2.8vw,13px);line-height:1.2;white-space:normal;text-wrap:balance;transform:none}
+  .direction-panel .panel-route-row .panel-cta--route{width:var(--phone-action-size);height:var(--phone-action-size);margin:0;padding:0;border-color:var(--ink);background:var(--accent);transform:none}
+  .direction-panel .panel-contact-row .panel-cta-chevron,.direction-panel .panel-route-row .panel-cta-chevron{width:42%;height:auto}
+  /* Outside-card controls use their accessible labels; hover bubbles must not widen the phone page. */
+  .direction-panel .panel-contact-row .contact-icon::after,.direction-panel .panel-contact-row .panel-cta--author::after{display:none}
+}
+
+
+/* Enlarged phone photo overflows only its former header reserve; copy top is unchanged. */
+.phone-photo-wrap{display:none}
+@media(max-width:700px){
+  .direction-panel{
+    --phone-photo-baseline:clamp(104.65px,29.9vw,149.5px);
+    --mobile-photo:clamp(120.3475px,34.385vw,171.925px);
+  }
+  .panel-visual-row{height:var(--phone-photo-baseline);grid-template-rows:var(--phone-photo-baseline);column-gap:6px}
+  .direction-panel .panel-visual-title{height:var(--phone-photo-baseline);min-height:var(--phone-photo-baseline)}
+  .panel-visual-title h2{letter-spacing:var(--phone-heading-tracking,-.055em)}
+  .phone-photo-wrap{display:block;float:right;margin:0;padding:0;border:0;pointer-events:none;user-select:none;shape-margin:0}
+}
+@media(max-width:340px){
+  #direction-panel[data-direction="0.6"] .panel-visual-title h2{letter-spacing:var(--phone-heading-tracking,-.07em)}
+}
+
+/* Phone typography follows the original orbit labels and the author's saved button. */
+@media(max-width:700px){
+  .wheel .mobile-matrix-tile .wheel-node-name{font-family:var(--label-font);font-weight:500;text-align:center}
+  .wheel .mobile-matrix-tile .wheel-node-number,.mobile-panel-number{font-size:10px;letter-spacing:-.09em}
+  .wheel .mobile-matrix-tile .wheel-node-number{background:var(--ink);color:#e4e6e8}
+  .wheel .mobile-matrix-tile.is-mobile-active .wheel-node-number{background:var(--accent);color:var(--ink)}
+  .panel-context span:first-child{display:inline-block}
+  #direction-panel[data-direction="0.3"] [data-hub-copy="detail"] strong{color:#000}
+}
+
+/* Phone word-field action borrows the photo geometry; its halo masks only the bars. */
+.mobile-word-cta{display:none}
+@media(max-width:700px){
+  .author-synthesis{position:relative}
+  .mobile-word-cta{position:absolute;z-index:2;display:grid;place-items:center;left:var(--word-action-left);top:var(--word-action-top);width:var(--word-action-size);height:var(--word-action-size);padding:0;border:1px solid var(--ink);border-radius:50%;background:var(--accent);color:var(--ink);box-shadow:0 0 0 var(--word-action-halo,5px) var(--paper);touch-action:manipulation;cursor:pointer;transform:none}
+  .mobile-word-chevron{display:block;width:42%;height:auto;pointer-events:none}
+  .mobile-word-cta:active{filter:brightness(.97)}
+}
+
+
+/* The accepted concave phone outline paints over the retained editable border box. */
+.phone-tile-outline{display:none}
+@media(max-width:700px){
+  .wheel .mobile-matrix-tile .mobile-tile-face>.phone-tile-outline{display:block;position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible}
+  .wheel .mobile-matrix-tile .mobile-tile-face>.wheel-node-name{z-index:1}
+  .phone-tile-outline path{stroke-linejoin:round}
+  .mobile-contacts-body{margin-top:calc(var(--mobile-photo) - var(--phone-photo-baseline) + 14px)}
+  .mobile-contact-group + .mobile-contact-group{margin-top:32px}
+  .mobile-contact-group h3{display:block;margin:0 0 4px;color:var(--ink);font:700 18px/1.3 Arial,Helvetica,sans-serif;letter-spacing:.02em;text-transform:lowercase}
+  .mobile-contact-list{display:grid;gap:0;width:calc(100% + var(--contacts-group-right-air,16px))}
+  .mobile-contact-link{display:flex;align-items:baseline;min-width:0;min-height:calc(25.2px + (44px - 25.2px)/1.5);padding:6px 0;color:var(--ink);text-decoration:none;touch-action:manipulation}
+  .mobile-contact-label{flex:none;margin-right:16px;font:400 calc(14px / 1.5)/1.3 var(--label-font);color:var(--body);white-space:nowrap;text-transform:uppercase}
+  .mobile-contact-label::after{content:':'}
+  .mobile-contact-value{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;font:400 calc(28px * 2 / 3)/1.35 Arial,Helvetica,sans-serif;color:var(--blue-deep);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+  .mobile-contact-fill{display:block;flex:1 0 12px;align-self:flex-start;min-width:12px;margin-left:8px;margin-top:var(--contact-rule-top,0);height:var(--contact-rule-height,.5em);background:var(--accent)}
+  .mobile-contact-link:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .mobile-contacts-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;margin-top:12px}
+  .mobile-contacts-actions button{display:flex;align-items:center;justify-content:center;height:var(--phone-action-size);padding:0 16px;border:1px solid var(--ink);border-radius:999px;color:var(--ink);background:var(--paper);font:400 clamp(10.5px,2.8vw,13px)/1.2 var(--label-font);touch-action:manipulation;cursor:pointer}
+  .mobile-contacts-actions .mobile-contacts-back{min-width:0;width:100%;border-color:#000;background:#000;color:#fff}
+  .mobile-contacts-actions .mobile-contacts-top{width:var(--phone-action-size);padding:0;border-radius:50%;background:var(--accent)}
+  .mobile-contacts-chevron{display:block;width:42%;height:auto;pointer-events:none}
+}
