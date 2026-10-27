@@ -1,3 +1,62 @@
+/* One responsive owner for the sphere, phone and both tablet compositions. */
+(() => {
+  const root = document.documentElement;
+  const enabled = window.GARDARI_HUB_CONTENT?.features?.adaptiveLayout === true;
+  const touch = window.matchMedia('(any-pointer: coarse)');
+  const media = new EventTarget();
+  let mode = 'desktop';
+  function classify(width, height, coarse = false, adaptive = true) {
+    if (!adaptive) return width <= 700 ? 'phone' : 'desktop';
+    const landscape = width > height;
+    const turnedPhone = landscape && height <= 700 && width <= 1366;
+    if (turnedPhone) return 'tablet-portrait';
+    if (width <= 700) return 'phone';
+    const shortSide=Math.min(width,height), longSide=Math.max(width,height);
+    const tablet = shortSide <= 1180 && longSide <= 1366;
+    if (!tablet) return 'desktop';
+    return landscape && width >= 1024 ? 'tablet-landscape' : 'tablet-portrait';
+  }
+  const api = {
+    get mode() { return mode; },
+    isCompact: () => mode !== 'desktop',
+    isTablet: () => mode.startsWith('tablet-'),
+    isSidebar: () => mode === 'tablet-landscape',
+    media, classify,
+    scrollTop(behavior = 'instant') {
+      if (api.isSidebar()) document.getElementById('direction-panel')?.scrollTo({top:0,behavior});
+      window.scrollTo({top:0,behavior});
+    },
+    scrollPanelTop(behavior = 'auto') {
+      const panel = document.getElementById('direction-panel');
+      if (api.isSidebar()) panel?.scrollTo({top:0,behavior});
+      else panel?.scrollIntoView({block:'start',behavior});
+    }
+  };
+  Object.defineProperty(media, 'matches', {get:api.isCompact});
+  window.GARDARI_HUB_LAYOUT = api;
+  function apply() {
+    const previous = mode, wasCompact = api.isCompact(), wasSidebar = api.isSidebar();
+    const panel = document.getElementById('direction-panel');
+    const oldScroll = wasSidebar ? (panel?.scrollTop || 0) : Math.max(0,window.scrollY - (panel?.offsetTop || 0));
+    mode = classify(window.innerWidth, window.innerHeight, touch.matches, enabled);
+    root.dataset.hubLayout = mode;
+    root.dataset.hubCompact = String(api.isCompact());
+    if(panel) {if(api.isSidebar()) {panel.tabIndex=0;panel.dataset.sidebarFocusable='true';}
+      else if(panel.dataset.sidebarFocusable) {panel.removeAttribute('tabindex');delete panel.dataset.sidebarFocusable;}}
+    if (mode !== previous) {
+      if (wasCompact !== api.isCompact()) media.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new CustomEvent('hub:layout-change',{detail:{mode,previous}}));
+      if (wasSidebar !== api.isSidebar()) requestAnimationFrame(() => {
+        if (api.isSidebar()) {window.scrollTo({top:0,behavior:'instant'}); if(panel)panel.scrollTop=oldScroll;}
+        else if (wasSidebar && panel) window.scrollTo({top:panel.offsetTop+oldScroll,behavior:'instant'});
+      });
+    }
+  }
+  apply();
+  window.addEventListener('resize',apply,{passive:true});
+  touch.addEventListener('change',apply);
+})();
+
 /* Gardari circle: isolated idle-motion correction, not an accepted release. */
 /* Independent rim impulse + coasting, with the accepted soft bulk motor.
  * Advanced only by the existing particle-rendering loop. No timers or rAF. */
@@ -701,7 +760,7 @@ SOFTWARE.
   const fullCircle = 2 * Math.PI;
   const nodeAngles = directions.map((_, i) => -Math.PI / 2 + i * fullCircle / directions.length);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const phoneMedia = window.matchMedia("(max-width: 700px)");
+  const phoneMedia = window.GARDARI_HUB_LAYOUT.media;
   const originalWheelLabel = wheel.getAttribute("aria-label");
   let phoneUtility = null;
   let chosen = directions.findIndex(item => item.number === "0.1");
@@ -862,8 +921,8 @@ SOFTWARE.
     buttons.forEach((button, i) => {
       const angle = nodeAngles[i] + navigationOffset;
       const point = polar(angle, orbitRadius);
-      button.style.left = (50 + Math.cos(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
-      button.style.top = (50 + Math.sin(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
+      button.style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+      button.style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
       for (const circle of [dots[i], hitAreas[i]]) {
         circle.setAttribute("cx", point.x);
         circle.setAttribute("cy", point.y);
@@ -960,8 +1019,8 @@ SOFTWARE.
       }
     });
     // Геометрия и положение подписей отделены друг от друга.
-    buttons[i].style.left = (50 + Math.cos(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
-    buttons[i].style.top = (50 + Math.sin(angle) * (window.innerWidth <= 700 ? 45 : 40.7)) + "%";
+    buttons[i].style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+    buttons[i].style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
     buttons[i].setAttribute("aria-label", item.number + " " + item.title);
     buttons[i].dataset.direction = item.number;
     buttons[i].querySelector(".wheel-node-number").textContent = item.number;
@@ -1318,9 +1377,10 @@ SOFTWARE.
 
   // Fit native phone title lines before the fold animation measures their glyphs.
   function fitPhoneHeading(heading, lines) {
+    if (heading.dataset.tabletFontFit) {heading.style.removeProperty('font-size');delete heading.dataset.tabletFontFit;}
     heading.style.removeProperty('--phone-heading-size');
     heading.style.removeProperty('--phone-heading-tracking');
-    if (window.innerWidth > 700) return;
+    if (!window.GARDARI_HUB_LAYOUT.isCompact()) return;
     const photo = heading.closest('.direction-panel')?.querySelector('.panel-circle');
     if (!photo) return;
     const photoBox = photo.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
@@ -1334,8 +1394,11 @@ SOFTWARE.
       return range.getBoundingClientRect().width + stroke;
     });
     const longest = Math.max(1, ...widths());
-    if (longest > formerBudget && Number.isFinite(requested))
-      heading.style.setProperty('--phone-heading-size', (requested * formerBudget / longest).toFixed(4) + 'px');
+    if (longest > formerBudget && Number.isFinite(requested)) {
+      const size = (requested * formerBudget / longest).toFixed(4) + 'px';
+      heading.style.setProperty('--phone-heading-size', size);
+      if (window.GARDARI_HUB_LAYOUT.isTablet()) {heading.style.setProperty('font-size',size,'important');heading.dataset.tabletFontFit='true';}
+    }
     // Keep authored40px and other sizes; only tracking clears the enlarged circle.
     const budget = Math.max(1, photoBox.left - headingBox.left - 6);
     for (let pass = 0; pass < 3; pass++) {
@@ -1643,6 +1706,42 @@ SOFTWARE.
     spacer.dataset.photoWrap = 'circle';
   }
 
+  function alignSidebarFirstParagraph(scope, copy, first) {
+    if (!copy || !first) return;
+    if (!window.GARDARI_HUB_LAYOUT.isSidebar()) {copy.style.removeProperty('--sidebar-copy-gap');return;}
+    const ink = document.createElement('canvas').getContext('2d');
+    const style = getComputedStyle(first);
+    ink.font = [style.fontStyle,style.fontWeight,style.fontSize,style.fontFamily].join(' ');
+    // Measure the first rendered line, including punctuation and bold opening labels.
+    let ascent=0, lineTop=null;
+    const measureRoot=first.querySelector('.intro-type-ghost')||first;
+    const walker=document.createTreeWalker(measureRoot,NodeFilter.SHOW_TEXT);
+    let textNode, finished=false;
+    while(!finished && (textNode=walker.nextNode())) {
+      if(textNode.parentElement.closest('.visually-hidden'))continue;
+      if(measureRoot===first && textNode.parentElement.closest('[aria-hidden="true"]'))continue;
+      const textStyle=getComputedStyle(textNode.parentElement);
+      ink.font=[textStyle.fontStyle,textStyle.fontWeight,textStyle.fontSize,textStyle.fontFamily].join(' ');
+      for(let index=0;index<textNode.length;index++) {
+        const range=document.createRange();range.setStart(textNode,index);range.setEnd(textNode,index+1);
+        const rect=range.getBoundingClientRect();if(rect.width<.01)continue;
+        if(lineTop===null)lineTop=rect.top;
+        if(rect.top>lineTop+2){finished=true;break;}
+        ascent=Math.max(ascent,ink.measureText(textNode.data[index]).actualBoundingBoxAscent||0);
+      }
+    }
+    ascent=ascent||parseFloat(style.fontSize)*.72;
+    const marker = document.createElement('span'); marker.setAttribute('aria-hidden','true');
+    marker.style.cssText='display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
+    first.prepend(marker);
+    const inkTop = marker.getBoundingClientRect().top - ascent;
+    marker.remove();
+    const matrixBottom = document.getElementById('gardari-wheel').getBoundingClientRect().bottom;
+    const gap = Math.max(0,(parseFloat(getComputedStyle(copy).marginTop)||0)+matrixBottom-inkTop-scope.scrollTop);
+    const pixels=gap.toFixed(4)+'px';
+    if(copy.style.getPropertyValue('--sidebar-copy-gap')!==pixels)copy.style.setProperty('--sidebar-copy-gap',pixels);
+  }
+
   function alignPhotoCopyGap(scope) {
     const photo = scope?.querySelector('.panel-circle');
     const title = scope?.querySelector('.panel-visual-title h2');
@@ -1652,7 +1751,7 @@ SOFTWARE.
     if (!photo || !title || !row) return;
     const photoBox = photo.getBoundingClientRect();
     const titleBox = title.getBoundingClientRect();
-    const mobile = window.innerWidth <= 700;
+    const mobile = window.GARDARI_HUB_LAYOUT.isCompact();
     const card = mobile ? scope.querySelector('.mobile-card') || scope : scope;
     const horizontal = Math.max(0, mobile ? photoBox.left - titleBox.right : titleBox.left - photoBox.right);
     if (mobile) {
@@ -1661,7 +1760,7 @@ SOFTWARE.
       const contactsBody = scope.querySelector('.mobile-contacts-body');
       if (contactsBody) contactsBody.style.setProperty('--contacts-group-right-air', getComputedStyle(card).paddingRight);
       if (scope.style.getPropertyValue('--photo-copy-gap') !== '14px') scope.style.setProperty('--photo-copy-gap', '14px');
-      if (first) wrapPhonePhoto(photo, first);
+      if (first) {alignSidebarFirstParagraph(scope,copy,first);wrapPhonePhoto(photo,first);}
       return;
     }
     if (!copy || !first) return;
@@ -1680,7 +1779,7 @@ SOFTWARE.
     const list = synthesis?.querySelector('.author-disciplines');
     if (!action || !photo || !list) return;
     const keys = ['--word-action-left', '--word-action-top', '--word-action-size', '--word-action-halo'];
-    if (window.innerWidth > 700) {
+    if (!window.GARDARI_HUB_LAYOUT.isCompact()) {
       keys.forEach(key => synthesis.style.removeProperty(key));
       return;
     }
@@ -1713,7 +1812,7 @@ SOFTWARE.
 
   // Contact stripes start at lowercase x-height and extend down to the underline.
   function alignMobileContactRules(scope) {
-    if (window.innerWidth > 700 || scope?.dataset.direction !== '0.8') return;
+    if (!window.GARDARI_HUB_LAYOUT.isCompact() || scope?.dataset.direction !== '0.8') return;
     const ink = document.createElement('canvas').getContext('2d');
     if (!ink) return;
     // Reserve one shared label column using natural text metrics, independent of prior widths.
@@ -1765,7 +1864,7 @@ SOFTWARE.
     const style = getComputedStyle(heading);
     const gap = parseFloat(getComputedStyle(synthesis).columnGap) || 0;
     // The phone list keeps its accepted type size independently of the new title axis.
-    const column = window.innerWidth <= 700
+    const column = window.GARDARI_HUB_LAYOUT.isCompact()
       ? Math.max(0, scope.querySelector('.panel-circle').getBoundingClientRect().width / 1.3225 + 14 - gap)
       : Math.max(0, heading.getBoundingClientRect().left - synthesis.getBoundingClientRect().left - gap);
     const value = column.toFixed(4) + 'px';
@@ -1777,7 +1876,7 @@ SOFTWARE.
     const list = synthesis.querySelector('.author-disciplines');
     list.style.removeProperty('font-size');
     const ink = document.createElement('canvas').getContext('2d');
-    if (window.innerWidth <= 700) {
+    if (window.GARDARI_HUB_LAYOUT.isCompact()) {
       const card = scope.querySelector('.mobile-card') || scope;
       // Phone words keep the fitted baseline; the second pass reduces the first pass by 30%.
       const phoneStyle = getComputedStyle(list);
@@ -1833,7 +1932,7 @@ SOFTWARE.
       lead.style.removeProperty('line-height');
       for (const name of ['heightFit', 'heightFitLines', 'heightFitTarget', 'heightFitInk', 'heightFitMode', 'heightFitMin']) delete lead.dataset[name];
     };
-    if (window.innerWidth <= 700) { clearFit(); return; }
+    if (window.GARDARI_HUB_LAYOUT.isCompact()) { clearFit(); return; }
     const fullCopy = lead.querySelector('.intro-type-ghost') || lead;
     const range = document.createRange(); range.selectNodeContents(fullCopy);
     const tops = [];
@@ -1880,7 +1979,7 @@ SOFTWARE.
       marker.remove();
       const titleBox = title.getBoundingClientRect(), headingBox = heading.getBoundingClientRect();
       const stroke = parseFloat(style.webkitTextStrokeWidth) || 0;
-      const mobile = window.innerWidth <= 700;
+      const mobile = window.GARDARI_HUB_LAYOUT.isCompact();
       const labelAxis = headingBox.left;
       alignOpticalLeft(title.querySelector('.panel-context'), labelAxis, context);
       alignOpticalLeft(title.querySelector('.panel-info-eyebrow'), labelAxis, context);
@@ -2138,6 +2237,7 @@ SOFTWARE.
       if (node.tagName === 'BUTTON') node.setAttribute('aria-pressed', String(active));
     }
     wheel.setAttribute('aria-label', phone ? 'Семь разделов, контакты и Телеграм-канал' : originalWheelLabel);
+    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated'));
   }
 
   function syncPhonePanelControls() {
@@ -2176,7 +2276,7 @@ SOFTWARE.
   function measurePanelEnvelope() {
     panelMeasureFrame = null;
     const grid = panel.parentElement;
-    if (window.innerWidth <= 1130) {
+    if (window.GARDARI_HUB_LAYOUT.isCompact() || window.innerWidth <= 1130) {
       grid.style.removeProperty('--hub-panel-height');
       return;
     }
@@ -2269,14 +2369,14 @@ SOFTWARE.
     window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:true, number:'0.8'}}));
     if (!immediate) panelScrollTimer = setTimeout(() => {
       panelScrollTimer = null;
-      if (phoneMedia.matches && panel.dataset.direction === '0.8') panel.scrollIntoView({behavior:reducedMotion.matches ? 'auto' : 'smooth', block:'start'});
+      if (phoneMedia.matches && panel.dataset.direction === '0.8') window.GARDARI_HUB_LAYOUT.scrollPanelTop(reducedMotion.matches ? 'auto' : 'smooth');
     }, 30);
   }
 
   function scrollPhoneToMenu() {
     if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
     panelScrollTimer = null;
-    window.scrollTo({top:0, behavior:'instant'});
+    window.GARDARI_HUB_LAYOUT.scrollTop('instant');
   }
 
   panel.addEventListener("click", event => {
@@ -2339,7 +2439,7 @@ SOFTWARE.
     if (!immediate && phoneMedia.matches) {
       panelScrollTimer = window.setTimeout(() => {
         panelScrollTimer = null;
-        if (chosen === index && phoneMedia.matches) panel.scrollIntoView({behavior: reducedMotion.matches ? "auto" : "smooth", block: "start"});
+        if (chosen === index && phoneMedia.matches) window.GARDARI_HUB_LAYOUT.scrollPanelTop(reducedMotion.matches ? "auto" : "smooth");
       }, 30);
     } else if (!immediate && window.innerWidth <= 1130) {
       let delay = 190;
@@ -2428,7 +2528,7 @@ SOFTWARE.
   });
   function revealFragment() {
     if (location.hash === '#contacts' && phoneMedia.matches) {
-      openMobileContacts(true); requestAnimationFrame(() => panel.scrollIntoView({block:'start'})); return;
+      openMobileContacts(true); requestAnimationFrame(() => window.GARDARI_HUB_LAYOUT.scrollPanelTop()); return;
     }
     if (!aboutEnabled) return;
     const id = location.hash.slice(1);
@@ -2463,7 +2563,7 @@ SOFTWARE.
 
 /* A short retained state makes quick phone taps visible without delaying actions. */
 (() => {
-  const phone = window.matchMedia('(max-width:700px)');
+  const phone = window.GARDARI_HUB_LAYOUT.media;
   const selector = '#gardari-wheel .mobile-matrix-tile,#direction-panel .mobile-word-cta,#direction-panel .panel-cta,#direction-panel .contact-icon,#direction-panel .panel-route-pill,#direction-panel .mobile-contacts-actions button';
   const timers = new Map();
   const minimumPress = 120;
@@ -2533,7 +2633,7 @@ SOFTWARE.
     const node = control(event); if (!node || held(node)) return;
     press(node); release({node, started:performance.now()});
   }, true);
-  window.addEventListener('scroll', () => {if (pointer) endPointer(true);}, {passive:true});
+  window.addEventListener('scroll', () => {if (pointer) endPointer(true);}, {capture:true,passive:true});
   window.addEventListener('blur', clearAll);
   document.addEventListener('visibilitychange', () => {if (document.hidden) clearAll();});
   phone.addEventListener('change', () => {if (!phone.matches) clearAll();});
