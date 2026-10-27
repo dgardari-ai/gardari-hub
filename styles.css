@@ -632,13 +632,15 @@ p { text-wrap: pretty; }
   .wheel .mobile-matrix-tile .mobile-tile-face>.wheel-node-name{z-index:1}
   .phone-tile-outline path{stroke-linejoin:round}
   .mobile-contacts-body{margin-top:calc(var(--mobile-photo) - var(--phone-photo-baseline) + 14px)}
-  .mobile-contact-group + .mobile-contact-group{margin-top:32px}
-  .mobile-contact-group h3{display:block;margin:0 0 4px;color:var(--ink);font:700 18px/1.3 Arial,Helvetica,sans-serif;letter-spacing:.02em;text-transform:lowercase}
-  .mobile-contact-list{display:grid;gap:0;width:calc(100% + var(--contacts-group-right-air,16px))}
-  .mobile-contact-link{display:flex;align-items:baseline;min-width:0;min-height:calc(25.2px + (44px - 25.2px)/1.5);padding:6px 0;color:var(--ink);text-decoration:none;touch-action:manipulation}
-  .mobile-contact-label{flex:none;margin-right:16px;font:400 calc(14px / 1.5)/1.3 var(--label-font);color:var(--body);white-space:nowrap;text-transform:uppercase}
+  .direction-panel[data-direction="0.8"]{--contacts-group-gap:32px}
+  .direction-panel[data-direction="0.8"] .mobile-card{padding-bottom:var(--contacts-group-gap,32px)}
+  .mobile-contact-group + .mobile-contact-group{margin-top:var(--contacts-group-gap,32px)}
+  .mobile-contact-group h3{display:block;margin:0 0 10px;color:var(--ink);font:700 21.6px/1.3 Arial,Helvetica,sans-serif;letter-spacing:var(--phone-heading-tracking,-.055em);text-transform:lowercase}
+  .mobile-contact-list{display:grid;gap:calc(12.533333px * .7);width:calc(100% + var(--contacts-group-right-air,16px))}
+  .mobile-contact-link{display:flex;align-items:baseline;min-width:0;min-height:0;padding:0;color:var(--ink);text-decoration:none;touch-action:manipulation}
+  .mobile-contact-label{flex:none;width:var(--contacts-label-width,auto);margin-right:16px;font:400 calc(14px / 1.5)/1.3 var(--label-font);color:var(--body);white-space:nowrap;text-transform:uppercase}
   .mobile-contact-label::after{content:':'}
-  .mobile-contact-value{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;font:400 calc(28px * 2 / 3)/1.35 Arial,Helvetica,sans-serif;color:var(--blue-deep);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+  .mobile-contact-value{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;font:400 16.8px/1.35 Arial,Helvetica,sans-serif;color:var(--blue-deep);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
   .mobile-contact-fill{display:block;flex:1 0 12px;align-self:flex-start;min-width:12px;margin-left:8px;margin-top:var(--contact-rule-top,0);height:var(--contact-rule-height,.5em);background:var(--accent)}
   .mobile-contact-link:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
   .mobile-contacts-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;margin-top:12px}
@@ -646,4 +648,42 @@ p { text-wrap: pretty; }
   .mobile-contacts-actions .mobile-contacts-back{min-width:0;width:100%;border-color:#000;background:#000;color:#fff}
   .mobile-contacts-actions .mobile-contacts-top{width:var(--phone-action-size);padding:0;border-radius:50%;background:var(--accent)}
   .mobile-contacts-chevron{display:block;width:42%;height:auto;pointer-events:none}
+}
+
+/* Phone chevrons share the soft corners of the controls. */
+@media(max-width:700px){
+  .mobile-word-chevron path,.direction-panel .panel-cta-chevron path,.mobile-contacts-chevron path{stroke-linecap:round;stroke-linejoin:round}
+}
+
+/* Phone controls move without changing the surrounding layout. */
+@media(max-width:700px){
+  #gardari-wheel .mobile-matrix-tile,
+  #direction-panel :is(.mobile-word-cta,.panel-cta,.contact-icon,.panel-route-pill,.mobile-contacts-actions button){
+    transform:none;
+    translate:0 0;
+    scale:1;
+    transform-origin:50% 50%;
+    transition:scale 85ms ease-out,translate 85ms ease-out,filter 85ms ease-out,opacity 85ms ease-out;
+  }
+  /* The shared press state replaces the older contact-only bounce on phones. */
+  #direction-panel .contact-icon.is-tapped{animation:none}
+  #gardari-wheel .mobile-matrix-tile:is(:active,.is-phone-pressed),
+  #direction-panel :is(.mobile-word-cta,.panel-cta,.contact-icon,.panel-route-pill,.mobile-contacts-actions button):is(:active,.is-phone-pressed){
+    translate:0 2px;
+    scale:.97;
+    filter:brightness(.97);
+  }
+}
+@media(max-width:700px) and (prefers-reduced-motion:reduce){
+  #gardari-wheel .mobile-matrix-tile,
+  #direction-panel :is(.mobile-word-cta,.panel-cta,.contact-icon,.panel-route-pill,.mobile-contacts-actions button){
+    translate:none;
+    scale:none;
+  }
+  #gardari-wheel .mobile-matrix-tile:is(:active,.is-phone-pressed),
+  #direction-panel :is(.mobile-word-cta,.panel-cta,.contact-icon,.panel-route-pill,.mobile-contacts-actions button):is(:active,.is-phone-pressed){
+    translate:none;
+    scale:none;
+    opacity:.72;
+  }
 }

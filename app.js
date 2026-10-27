@@ -1685,20 +1685,25 @@ SOFTWARE.
       return;
     }
     const photoBox = photo.getBoundingClientRect(), box = synthesis.getBoundingClientRect();
-    const listBox = list.getBoundingClientRect(), rows = Array.from(list.children);
-    const fill = rows[0]?.querySelector('.author-discipline-fill');
-    const step = rows.length > 1 ? rows[1].offsetTop - rows[0].offsetTop : 0;
-    const stripe = fill ? parseFloat(getComputedStyle(fill).height) || 0 : 0;
-    const halo = Math.max(0, step - stripe);
+    // Row boxes and computed fill metrics stay fixed while the fill itself folds.
+    // Anchor the white halo to the first and last stripe centres, not line-box edges.
+    const stripes = Array.from(list.children).map(row => {
+      const fill = row.querySelector('.author-discipline-fill');
+      if (!fill) return null;
+      const rowBox = row.getBoundingClientRect(), style = getComputedStyle(fill);
+      const height = parseFloat(style.height) || 0;
+      return {top:rowBox.top - box.top, center:rowBox.top - box.top + (parseFloat(style.marginTop) || 0) + height / 2, height};
+    }).filter(Boolean);
+    if (!stripes.length) return;
+    const first = stripes[0], last = stripes[stripes.length - 1];
+    const step = stripes.length > 1 ? stripes[1].top - first.top : 0;
+    const halo = Math.max(0, step - first.height);
+    const span = last.center - first.center;
     const lower = scope.querySelector('.panel-cta');
-    if (!lower) return;
-    const size = (photoBox.width + lower.getBoundingClientRect().width) / 2;
-    const sizeValue = size.toFixed(4) + 'px';
-    if (synthesis.style.getPropertyValue('--word-action-size') !== sizeValue)
-      synthesis.style.setProperty('--word-action-size', sizeValue);
-    const actionBox = action.getBoundingClientRect();
-    const values = [photoBox.right - actionBox.width - box.left,
-      listBox.top - box.top + (listBox.height - actionBox.height) / 2,
+    const fallback = (photoBox.width + (lower?.offsetWidth || photoBox.width)) / 2;
+    const size = span > 2 * halo ? span - 2 * halo : fallback;
+    const values = [photoBox.right - size - box.left,
+      (first.center + last.center - size) / 2,
       size, halo];
     keys.forEach((key, index) => {
       const value = values[index].toFixed(4) + 'px';
@@ -1711,6 +1716,22 @@ SOFTWARE.
     if (window.innerWidth > 700 || scope?.dataset.direction !== '0.8') return;
     const ink = document.createElement('canvas').getContext('2d');
     if (!ink) return;
+    // Reserve one shared label column using natural text metrics, independent of prior widths.
+    const contactsBody = scope.querySelector('.mobile-contacts-body');
+    const labelWidths = Array.from(scope.querySelectorAll('.mobile-contact-label')).map(label => {
+      const style = getComputedStyle(label);
+      ink.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+      let text = label.textContent.trim();
+      if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('ru');
+      else if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase('ru');
+      text += ':';
+      return ink.measureText(text).width + (parseFloat(style.letterSpacing) || 0) * text.length;
+    });
+    if (contactsBody && labelWidths.length) {
+      const width = Math.max(...labelWidths).toFixed(4) + 'px';
+      if (contactsBody.style.getPropertyValue('--contacts-label-width') !== width)
+        contactsBody.style.setProperty('--contacts-label-width', width);
+    }
     scope.querySelectorAll('.mobile-contact-link').forEach(row => {
       const word = row.querySelector('.mobile-contact-value');
       if (!word || !row.querySelector('.mobile-contact-fill')) return;
@@ -2053,16 +2074,19 @@ SOFTWARE.
     function draw() {
       if (!phoneMedia.matches) return;
       records.forEach(({face, outline, mask, body}) => {
-        const box = face.getBoundingClientRect();
+        // Layout metrics stay stable while the whole control is visually pressed.
+        const style = getComputedStyle(face), badgeStyle = getComputedStyle(face.querySelector('.wheel-node-number'));
+        const box = {width:parseFloat(style.width) || face.offsetWidth, height:parseFloat(style.height) || face.offsetHeight};
         if (box.width < 1 || box.height < 1) return;
-        const badge = face.querySelector('.wheel-node-number').getBoundingClientRect(), style = getComputedStyle(face);
+        const badge = {left:parseFloat(badgeStyle.left) || 0, top:parseFloat(badgeStyle.top) || 0,
+          width:parseFloat(badgeStyle.width) || 0, height:parseFloat(badgeStyle.height) || 0};
         const border = side => Math.max(0, parseFloat(style['border' + side + 'Width']) || 0);
         const bL = border('Left'), bR = border('Right'), bT = border('Top'), bB = border('Bottom');
         const stroke = ['none', 'hidden'].includes(style.borderTopStyle) ? 0 : bT;
         const edge = stroke / 2, right = box.width - edge, bottom = box.height - edge;
         const normal = Math.max(1, Math.min(parseFloat(style.borderTopRightRadius) || 12, Math.min(box.width, box.height) / 3));
         const radius = Math.max(0, normal - edge), notch = badge.width / 2 + 6.5 + edge;
-        const cx = badge.left - box.left + badge.width / 2, cy = badge.top - box.top + badge.height / 2, sum = notch + radius;
+        const cx = bL + badge.left + badge.width / 2, cy = bT + badge.top + badge.height / 2, sum = notch + radius;
         const top = {x:cx + Math.sqrt(Math.max(0, sum * sum - (edge + radius - cy) ** 2)), y:edge + radius};
         const left = {x:edge + radius, y:cy + Math.sqrt(Math.max(0, sum * sum - (edge + radius - cx) ** 2))};
         const tangent = point => ({x:cx + notch / sum * (point.x - cx), y:cy + notch / sum * (point.y - cy)});
@@ -2435,4 +2459,82 @@ SOFTWARE.
   resizeParticleCanvas();
   drawOrbit();
 
+})();
+
+/* A short retained state makes quick phone taps visible without delaying actions. */
+(() => {
+  const phone = window.matchMedia('(max-width:700px)');
+  const selector = '#gardari-wheel .mobile-matrix-tile,#direction-panel .mobile-word-cta,#direction-panel .panel-cta,#direction-panel .contact-icon,#direction-panel .panel-route-pill,#direction-panel .mobile-contacts-actions button';
+  const timers = new Map();
+  const minimumPress = 120;
+  let pointer = null, keyboard = null;
+  function control(event) {
+    if (!phone.matches || !(event.target instanceof Element)) return null;
+    const node = event.target.closest(selector);
+    return node && !node.disabled && node.getAttribute('aria-disabled') !== 'true' ? node : null;
+  }
+  function held(node) {return pointer?.node === node || keyboard?.node === node;}
+  function press(node) {
+    clearTimeout(timers.get(node)); timers.delete(node);
+    node.classList.add('is-phone-pressed');
+  }
+  function release(state, cancel = false) {
+    if (!state || held(state.node)) return;
+    const node = state.node;
+    clearTimeout(timers.get(node)); timers.delete(node);
+    const remaining = cancel ? 0 : Math.max(0, minimumPress - (performance.now() - state.started));
+    if (!remaining) {node.classList.remove('is-phone-pressed'); return;}
+    timers.set(node, setTimeout(() => {
+      timers.delete(node);
+      if (!held(node)) node.classList.remove('is-phone-pressed');
+    }, remaining));
+  }
+  function endPointer(cancel = false) {
+    const old = pointer; pointer = null; release(old, cancel);
+  }
+  function endKeyboard(cancel = false) {
+    const old = keyboard; keyboard = null; release(old, cancel);
+  }
+  function clearAll() {
+    endPointer(true); endKeyboard(true);
+    timers.forEach((timer, node) => {clearTimeout(timer); node.classList.remove('is-phone-pressed');});
+    timers.clear();
+  }
+  document.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0) return;
+    const node = control(event); if (!node) return;
+    endPointer(true);
+    pointer = {node, id:event.pointerId, x:event.clientX, y:event.clientY, started:performance.now()};
+    press(node);
+  }, {capture:true, passive:true});
+  document.addEventListener('pointermove', event => {
+    if (pointer && pointer.id === event.pointerId && Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) > 10) endPointer(true);
+  }, {capture:true, passive:true});
+  document.addEventListener('pointerup', event => {
+    if (pointer?.id === event.pointerId) endPointer();
+  }, {capture:true, passive:true});
+  document.addEventListener('pointercancel', event => {
+    if (pointer?.id === event.pointerId) endPointer(true);
+  }, {capture:true, passive:true});
+  document.addEventListener('keydown', event => {
+    if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
+    const node = control(event);
+    if (!node || (event.key === ' ' && node.tagName !== 'BUTTON' && node.getAttribute('role') !== 'button')) return;
+    endKeyboard(true); keyboard = {node, key:event.key, started:performance.now()}; press(node);
+  }, true);
+  document.addEventListener('keyup', event => {
+    if (keyboard?.key === event.key) endKeyboard();
+  }, true);
+  document.addEventListener('focusout', event => {
+    if (keyboard?.node === event.target) endKeyboard(true);
+  }, true);
+  document.addEventListener('click', event => {
+    if (event.detail !== 0) return;
+    const node = control(event); if (!node || held(node)) return;
+    press(node); release({node, started:performance.now()});
+  }, true);
+  window.addEventListener('scroll', () => {if (pointer) endPointer(true);}, {passive:true});
+  window.addEventListener('blur', clearAll);
+  document.addEventListener('visibilitychange', () => {if (document.hidden) clearAll();});
+  phone.addEventListener('change', () => {if (!phone.matches) clearAll();});
 })();
