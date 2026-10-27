@@ -83,7 +83,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-art.jpg",
       "imageAlt": "Фрагмент многослойной живописи Дениса Гардари",
       "imagePosition": "50% 50%",
-      "url": "https://gardari.art/art/",
+      "url": "https://gardari.art/gallery",
       "action": "ПЕРЕЙТИ НА СТРАНИЦУ ГАЛЕРЕИ",
       "disciplines": [
         "живопись",
@@ -114,7 +114,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-stories.jpg",
       "imageAlt": "Денис Гардари на городской аллее, прохожие на заднем плане",
       "imagePosition": "23% 42%",
-      "url": "https://gardari.art/gardariki/",
+      "url": "https://gardariki.gardari.art",
       "action": "ЧИТАТЬ ГАРДАРИКИ",
       "disciplines": [
         "истории",
@@ -176,7 +176,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-tools.jpg",
       "imageAlt": "Чёрно-белая композиция с парящими предметами",
       "imagePosition": "50% 50%",
-      "url": "https://gardari.art/tools/",
+      "url": "https://dgardari-ai.github.io/gardari-tools-platform/",
       "action": "ПЕРЕЙТИ НА ПЛАТФОРМУ",
       "disciplines": [
         "методики",
@@ -207,7 +207,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-club.jpg",
       "imageAlt": "Участники клубной встречи",
       "imagePosition": "50% 42%",
-      "url": "https://gardari.art/club/",
+      "url": "https://gardari.art/gardari_club",
       "action": "ПЕРЕЙТИ НА СТРАНИЦУ КЛУБА",
       "disciplines": [
         "культура",

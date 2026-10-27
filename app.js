@@ -2242,6 +2242,8 @@ SOFTWARE.
 
   function syncPhonePanelControls() {
     const item = directions[chosen];
+    const wordContacts = panel.querySelector('.mobile-word-cta[data-phone-contacts]');
+    if (wordContacts) wordContacts.setAttribute('href', phoneMedia.matches ? '#contacts' : '#hub-contact-links');
     const cta = panel.querySelector('.panel-cta');
     if (!cta || !item) return;
     const path = cta.querySelector('.panel-cta-chevron path');
