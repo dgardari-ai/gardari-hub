@@ -4,11 +4,16 @@
   const enabled = window.GARDARI_HUB_CONTENT?.features?.adaptiveLayout === true;
   const desktopLayoutEnabled = window.GARDARI_HUB_CONTENT?.features?.desktopLayout === true || Boolean(root.dataset.desktopPilot);
   root.dataset.hubDesktop = String(desktopLayoutEnabled);
-  const touch = window.matchMedia('(any-pointer: coarse)');
+  // Use the primary pointer: a touch-capable laptop still owns a mouse layout.
+  const touch = window.matchMedia('(pointer: coarse)');
+  let previewDevice = null;
   const media = new EventTarget();
   let mode = 'desktop';
-  function classify(width, height, coarse = false, adaptive = true) {
+  function classify(width, height, coarse = false, adaptive = true, desktop = desktopLayoutEnabled) {
     if (!adaptive) return width <= 700 ? 'phone' : 'desktop';
+    // Computer windows retain the authored desktop composition until genuinely narrow.
+    // Physical touch devices and historical sources keep their accepted geometry.
+    if (desktop && !coarse) return width >= 900 ? 'desktop' : 'tablet-portrait';
     const landscape = width > height;
     const turnedPhone = landscape && height <= 700 && width <= 1366;
     if (turnedPhone) return 'tablet-portrait';
@@ -27,6 +32,16 @@
     isTablet: () => mode.startsWith('tablet-'),
     isSidebar: () => mode === 'tablet-landscape',
     media, classify,
+    // An editor's chosen device is ephemeral and never enters content or history.
+    setPreviewDevice(value) {
+      if (![null, 1440, 768, 1024, 390].includes(value) || !isLocalAuthoringFrame()) return false;
+      if (previewDevice === value) return true;
+      previewDevice = value;
+      apply();
+      // Existing type fitting and compact UI owners also listen for resize.
+      window.dispatchEvent(new Event('resize'));
+      return true;
+    },
     scrollTop(behavior = 'instant') {
       if (api.isSidebar()) document.getElementById('direction-panel')?.scrollTo({top:0,behavior});
       window.scrollTo({top:0,behavior});
@@ -39,11 +54,17 @@
   };
   Object.defineProperty(media, 'matches', {get:api.isCompact});
   window.GARDARI_HUB_LAYOUT = api;
+  function isLocalAuthoringFrame() {
+    if (window.parent === window || !['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname)) return false;
+    try { return window.parent.location.origin === location.origin; }
+    catch { return false; }
+  }
   function apply() {
     const previous = mode, wasCompact = api.isCompact(), wasSidebar = api.isSidebar();
     const panel = document.getElementById('direction-panel');
     const oldScroll = wasSidebar ? (panel?.scrollTop || 0) : Math.max(0,window.scrollY - (panel?.offsetTop || 0));
-    mode = classify(window.innerWidth, window.innerHeight, touch.matches, enabled);
+    const coarse = previewDevice === null ? touch.matches : previewDevice !== 1440;
+    mode = classify(window.innerWidth, window.innerHeight, coarse, enabled);
     root.dataset.hubLayout = mode;
     root.dataset.hubCompact = String(api.isCompact());
     if(panel) {if(api.isSidebar()) {panel.tabIndex=0;panel.dataset.sidebarFocusable='true';}
@@ -747,6 +768,7 @@ SOFTWARE.
   const directions = window.GARDARI_HUB_CONTENT.directions;
   const directionComposition = window.GARDARI_HUB_CONTENT.features?.directionComposition === true;
   const homeButtonsEnabled = window.GARDARI_HUB_CONTENT.features?.homeButtons === true;
+  const introNextEnabled = homeButtonsEnabled && window.GARDARI_HUB_CONTENT.features?.introNext === true;
 
   const ns = "http://www.w3.org/2000/svg";
   const wheel = document.getElementById("gardari-wheel");
@@ -2098,8 +2120,8 @@ SOFTWARE.
       ? '<a class="mobile-contacts-back" data-hub-text="d08-action" href="' + escapeHtml(item.url) + '">' + escapeHtml(actionLabel) + '</a>'
       : '<button type="button" class="mobile-contacts-back" data-hub-text="d08-action" data-phone-contact-action="back">' + escapeHtml(actionLabel) + '</button>';
     const topAttributes = homeButtonsEnabled
-      ? ' data-hub-home="true" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
-      : ' aria-label="Наверх к меню" aria-controls="gardari-wheel"';
+      ? ' data-hub-home="true" data-tooltip="В раздел 0.1 — Денис Гардари" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
+      : ' data-tooltip="Наверх к меню" aria-label="Наверх к меню" aria-controls="gardari-wheel"';
     return '<div class="mobile-card" role="region" aria-label="' + escapeHtml(item.title) + '">' +
       '<div class="panel-visual-row"><div class="panel-circle panel-image-frame"><div class="photo-reveal-stage">' +
       '<img data-hub-image="contacts" src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + ';filter:url(#hub-warm-mono)"></div><span class="photo-reveal-cover" aria-hidden="true"></span></div>' +
@@ -2136,8 +2158,10 @@ SOFTWARE.
     const card = '<div class="mobile-card">' + visual + '<div class="panel-description' + (item.number === "0.1" ? ' panel-description--author' : '') + '">' + copy + '</div></div>' +
       '<span class="mobile-panel-number" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>';
     if (item.number === "0.1") {
-      const authorButtonAttributes = homeButtonsEnabled
-        ? 'data-hub-home="true" data-tooltip="В раздел 0.1" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
+      const authorButtonAttributes = introNextEnabled
+        ? 'data-hub-next="true" data-tooltip="Следующий раздел" aria-label="Следующий раздел" aria-controls="direction-panel"'
+        : homeButtonsEnabled
+          ? 'data-hub-home="true" data-tooltip="В раздел 0.1 — Денис Гардари" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
         : aboutEnabled
           ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
           : 'data-tooltip="Концепт Бюро" aria-label="Перейти к разделу 0.2" aria-controls="direction-panel"';
@@ -2151,7 +2175,7 @@ SOFTWARE.
     } else {
       const linkProps = 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer"';
       const ctaProps = homeButtonsEnabled
-        ? 'href="#main" data-hub-home="true" aria-controls="direction-panel"'
+        ? 'href="#main" data-hub-home="true" data-tooltip="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
         : linkProps;
       const ctaLabel = homeButtonsEnabled ? 'В раздел 0.1 — Денис Гардари' : item.action;
       const ctaChevron = homeButtonsEnabled ? 'm5 15 7-7 7 7' : 'm9 5 7 7-7 7';
@@ -2285,11 +2309,14 @@ SOFTWARE.
     if (!cta || !item) return;
     const path = cta.querySelector('.panel-cta-chevron path');
     if (homeButtonsEnabled) {
-      cta.dataset.hubHome = 'true';
+      const next = introNextEnabled && item.number === '0.1';
+      if (next) { cta.dataset.hubNext = 'true'; delete cta.dataset.hubHome; }
+      else { cta.dataset.hubHome = 'true'; delete cta.dataset.hubNext; }
       delete cta.dataset.mobileTop; delete cta.dataset.mobileNext;
-      cta.setAttribute('aria-label', 'В раздел 0.1 — Денис Гардари');
+      const label = next ? 'Следующий раздел' : 'В раздел 0.1 — Денис Гардари';
+      cta.setAttribute('aria-label', label);
       cta.setAttribute('aria-controls', 'direction-panel');
-      cta.setAttribute('data-tooltip', 'В раздел 0.1');
+      cta.setAttribute('data-tooltip', label);
       cta.removeAttribute('aria-expanded');
       path?.setAttribute('d', 'm5 15 7-7 7 7');
       if (cta.tagName === 'A') {cta.setAttribute('href', '#main'); cta.removeAttribute('target'); cta.removeAttribute('rel');}
@@ -2436,9 +2463,23 @@ SOFTWARE.
     window.GARDARI_HUB_LAYOUT.scrollTop('instant');
   }
 
+  // The author follows the current editable order instead of a fixed section number.
+  function goNext() {
+    const index = directions.findIndex(item => item.number === '0.1');
+    if (index < 0 || directions.length < 2) return;
+    if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
+    panelScrollTimer = null;
+    select((index + 1) % directions.length, true);
+    window.GARDARI_HUB_LAYOUT.scrollTop('instant');
+  }
+
   panel.addEventListener("click", event => {
     const target = event.target;
     if (event.defaultPrevented || !(target instanceof Element)) return;
+    const next = target.closest('[data-hub-next]');
+    if (introNextEnabled && next && panel.contains(next)) {
+      event.preventDefault(); goNext(); return;
+    }
     const home = target.closest('[data-hub-home]');
     if (homeButtonsEnabled && home && panel.contains(home)) {
       event.preventDefault(); goHome(); return;

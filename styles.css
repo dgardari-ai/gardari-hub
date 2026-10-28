@@ -179,7 +179,7 @@ p { text-wrap: pretty; }
 .contact-icon:hover, .contact-icon:focus-visible { transform: translateY(-3px); background: var(--almost); border-color: var(--blue-deep); }
 .contact-icon:active { transform: scale(.93); }
 .contact-icon.is-tapped { animation: contact-press .24s var(--ease); }
-.contact-icon::after, .panel-cta--author::after {
+.contact-icon::after, .panel-cta[data-tooltip]::after, .mobile-contacts-top[data-tooltip]::after {
   position: absolute; z-index: 5; left: 50%; bottom: calc(100% + 11px);
   content: attr(data-tooltip); width: max-content; max-width: 240px;
   padding: 8px 13px; border: none; border-radius: 999px;
@@ -191,8 +191,7 @@ p { text-wrap: pretty; }
   transform: translate(-50%, 4px);
   transition: opacity .14s var(--ease), transform .14s var(--ease), visibility .14s;
 }
-.contact-icon:hover::after, .contact-icon:focus-visible::after, .contact-icon.is-tapped::after,
-.panel-cta--author:hover::after, .panel-cta--author:focus-visible::after {
+.contact-icon:hover::after, .contact-icon:focus-visible::after, .contact-icon.is-tapped::after {
   opacity: 1; visibility: visible; transform: translate(-50%, 0);
 }
 @keyframes contact-press { 0% { transform: scale(1); } 42% { transform: scale(.91); } 100% { transform: scale(1); } }
@@ -730,7 +729,7 @@ html[data-hub-desktop="true"][data-hub-layout="desktop"] .wheel .mobile-matrix-t
   z-index: 1;
   width: 100%;
   font: 500 13px/1.05 var(--label-font);
-  font-size: 13px !important;
+  font-size: clamp(8.5px, calc(var(--pilot-matrix-used) * .036111111), 13px) !important;
   letter-spacing: -.03em;
   text-transform: uppercase;
   text-align: center;
@@ -828,7 +827,7 @@ html[data-hub-desktop="true"][data-hub-layout="desktop"] .panel-context {
   margin: 0;
 }
 html[data-hub-desktop="true"][data-hub-layout="desktop"] .panel-context span:first-child { display: inline-block; }
-html[data-hub-desktop="true"][data-hub-layout="desktop"] .panel-visual-title h2 { flex: 0 0 auto; }
+html[data-hub-desktop="true"][data-hub-layout="desktop"] .panel-visual-title h2 { flex: 0 0 auto; font-size: clamp(47.3px, 4.015vw, 74.8px); }
 html[data-hub-desktop="true"][data-hub-layout="desktop"] .panel-heading-rule {
   left: var(--pilot-rule-left,0px) !important;
   width: var(--pilot-rule-width,100%) !important;
@@ -997,5 +996,26 @@ html[data-hub-desktop="true"][data-hub-layout="desktop"] #gardari-wheel .phone-t
 html[data-hub-desktop="true"][data-hub-layout="desktop"] .desktop-card-outline path { stroke-width: var(--hub-boundary-width); }
 .mobile-contacts-actions .mobile-contacts-back { display: inline-flex; align-items: center; justify-content: center; text-align: center; }
 html[data-hub-desktop="true"][data-hub-layout="desktop"] #direction-panel[data-direction="0.8"] .mobile-contact-value { font-size: 13.2px; }
-/* The accepted r07 contact-body envelope keeps the lower frame in place. */
-html[data-hub-desktop="true"][data-hub-layout="desktop"] #direction-panel[data-direction="0.8"] .mobile-card { min-height: calc(var(--pilot-inset) + var(--pilot-photo) * .8 + 398.765625px); }
+/* Add half the measured 3.3 bottom blank (54.09375px); wrapped content keeps 1.5× padding. */
+html[data-hub-desktop="true"][data-hub-layout="desktop"] #direction-panel[data-direction="0.8"] .mobile-card {
+  min-height: calc(var(--pilot-inset) + var(--pilot-photo) * .8 + 425.8125px);
+  padding-bottom: 42px;
+}
+
+/* Footer explanations share the author-contact capsule; pointer hover never sticks on touch. */
+#direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip] { position: relative; }
+#direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip]::after { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  #direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip]::after { display: block; }
+  #direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip]:is(:hover,:focus-visible)::after {
+    opacity: 1; visibility: visible; transform: translate(-50%, 0);
+  }
+  html[data-hub-compact="true"] #direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip]::after,
+  #direction-panel .mobile-contacts-top[data-tooltip]::after {
+    left: auto; right: 0; transform: translateY(4px);
+  }
+  html[data-hub-compact="true"] #direction-panel :is(.panel-cta,.mobile-contacts-top)[data-tooltip]:is(:hover,:focus-visible)::after,
+  #direction-panel .mobile-contacts-top[data-tooltip]:is(:hover,:focus-visible)::after {
+    transform: translateY(0);
+  }
+}
