@@ -2,6 +2,8 @@
 (() => {
   const root = document.documentElement;
   const enabled = window.GARDARI_HUB_CONTENT?.features?.adaptiveLayout === true;
+  const desktopLayoutEnabled = window.GARDARI_HUB_CONTENT?.features?.desktopLayout === true || Boolean(root.dataset.desktopPilot);
+  root.dataset.hubDesktop = String(desktopLayoutEnabled);
   const touch = window.matchMedia('(any-pointer: coarse)');
   const media = new EventTarget();
   let mode = 'desktop';
@@ -19,6 +21,9 @@
   const api = {
     get mode() { return mode; },
     isCompact: () => mode !== 'desktop',
+    // The old API name remains compatible with saved pilot/editor bridges.
+    isDesktopPilot: () => desktopLayoutEnabled && mode === 'desktop',
+    isMatrixNavigation: () => api.isCompact() || api.isDesktopPilot(),
     isTablet: () => mode.startsWith('tablet-'),
     isSidebar: () => mode === 'tablet-landscape',
     media, classify,
@@ -741,6 +746,7 @@ SOFTWARE.
   // Единая конфигурация направлений. Неопубликованные адреса — пилотные маршруты.
   const directions = window.GARDARI_HUB_CONTENT.directions;
   const directionComposition = window.GARDARI_HUB_CONTENT.features?.directionComposition === true;
+  const homeButtonsEnabled = window.GARDARI_HUB_CONTENT.features?.homeButtons === true;
 
   const ns = "http://www.w3.org/2000/svg";
   const wheel = document.getElementById("gardari-wheel");
@@ -761,6 +767,8 @@ SOFTWARE.
   const nodeAngles = directions.map((_, i) => -Math.PI / 2 + i * fullCircle / directions.length);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const phoneMedia = window.GARDARI_HUB_LAYOUT.media;
+  const isDesktopMatrix = () => window.GARDARI_HUB_LAYOUT.isDesktopPilot();
+  const isMatrixNavigation = () => window.GARDARI_HUB_LAYOUT.isMatrixNavigation();
   const originalWheelLabel = wheel.getAttribute("aria-label");
   let phoneUtility = null;
   let chosen = directions.findIndex(item => item.number === "0.1");
@@ -904,6 +912,11 @@ SOFTWARE.
   const orbitLabelHalfWindow = 750 / period;
 
   function updateOrbitLabelEmphasis() {
+    if (isDesktopMatrix()) {
+      orbitLabelNodes.forEach((name, index) => {name.style.removeProperty('--orbit-label-scale'); orbitLabelScales[index] = '1.0000';});
+      buttons.forEach(button => button.classList.remove('is-top'));
+      return;
+    }
     orbitLabelNodes.forEach((name, i) => {
       const nodeProgress = ((i / directions.length + navigationOffset / fullCircle) % 1 + 1) % 1;
       const offset = Math.abs(progress - nodeProgress);
@@ -921,8 +934,12 @@ SOFTWARE.
     buttons.forEach((button, i) => {
       const angle = nodeAngles[i] + navigationOffset;
       const point = polar(angle, orbitRadius);
-      button.style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
-      button.style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+      if (isDesktopMatrix()) {
+        button.style.removeProperty("left"); button.style.removeProperty("top");
+      } else {
+        button.style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+        button.style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+      }
       for (const circle of [dots[i], hitAreas[i]]) {
         circle.setAttribute("cx", point.x);
         circle.setAttribute("cy", point.y);
@@ -943,7 +960,7 @@ SOFTWARE.
     navigationOffset = turn.to;
     navigationTurn = null;
     drawNavigationPositions();
-    buttons.forEach((button, i) => button.classList.toggle("is-top", i === turn.index));
+    buttons.forEach((button, i) => button.classList.toggle("is-top", !isDesktopMatrix() && i === turn.index));
     wheel.dataset.turnState = "idle";
     wheel.dataset.topDirection = directions[turn.index].number;
     updateOrbitLabelEmphasis();
@@ -970,7 +987,7 @@ SOFTWARE.
   }
 
   function turnNavigationTo(index, immediate = false) {
-    const instant = immediate || reducedMotion.matches || !wheelVisible || document.hidden;
+    const instant = immediate || isMatrixNavigation() || reducedMotion.matches || !wheelVisible || document.hidden;
     if (navigationTurn?.index === index) {
       if (instant) settleNavigationTurn(true);
       return;
@@ -1019,8 +1036,10 @@ SOFTWARE.
       }
     });
     // Геометрия и положение подписей отделены друг от друга.
-    buttons[i].style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
-    buttons[i].style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+    if (!isDesktopMatrix()) {
+      buttons[i].style.left = (50 + Math.cos(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+      buttons[i].style.top = (50 + Math.sin(angle) * (window.GARDARI_HUB_LAYOUT.isCompact() ? 45 : 40.7)) + "%";
+    }
     buttons[i].setAttribute("aria-label", item.number + " " + item.title);
     buttons[i].dataset.direction = item.number;
     buttons[i].querySelector(".wheel-node-number").textContent = item.number;
@@ -1032,6 +1051,7 @@ SOFTWARE.
   function resizeParticleCanvas() {
     if (!particleContext) return;
     drawNavigationPositions();
+    if (isMatrixNavigation()) return;
     const size = wheel.getBoundingClientRect().width;
     const pixelSize = Math.max(1, Math.round(size * Math.min(window.devicePixelRatio || 1, 2)));
     if (particleCanvas.width !== pixelSize || particleCanvas.height !== pixelSize) {
@@ -1044,7 +1064,7 @@ SOFTWARE.
 
   // Единая живая поверхность: край образован теми же точками, что и внутренность.
   function drawParticleField(time) {
-    if (phoneMedia.matches) return;
+    if (isMatrixNavigation()) return;
     if (window.HubFluidField) {
       window.HubFluidField.render({canvas: particleCanvas, ctx: particleContext, time, reducedMotion: reducedMotion.matches});
       return;
@@ -1166,7 +1186,7 @@ SOFTWARE.
   }
 
   function trackPointer(event) {
-    if (phoneMedia.matches || event.pointerType === "touch") return;
+    if (isMatrixNavigation() || event.pointerType === "touch") return;
     const rect = wheel.getBoundingClientRect();
     if (!pointer.active) nextWordAt = performance.now() + 1600;
     pointer.targetX = Math.max(-1, Math.min(1, (event.clientX - rect.left - rect.width / 2) / (rect.width * .34)));
@@ -1812,7 +1832,7 @@ SOFTWARE.
 
   // Contact stripes start at lowercase x-height and extend down to the underline.
   function alignMobileContactRules(scope) {
-    if (!window.GARDARI_HUB_LAYOUT.isCompact() || scope?.dataset.direction !== '0.8') return;
+    if (!isMatrixNavigation() || scope?.dataset.direction !== '0.8') return;
     const ink = document.createElement('canvas').getContext('2d');
     if (!ink) return;
     // Reserve one shared label column using natural text metrics, independent of prior widths.
@@ -1827,7 +1847,9 @@ SOFTWARE.
       return ink.measureText(text).width + (parseFloat(style.letterSpacing) || 0) * text.length;
     });
     if (contactsBody && labelWidths.length) {
-      const width = Math.max(...labelWidths).toFixed(4) + 'px';
+      const measured = Math.max(...labelWidths);
+      // A small desktop clearance prevents the widest label and its colon wrapping.
+      const width = (isDesktopMatrix() ? Math.ceil(measured) + 1 : measured).toFixed(4) + 'px';
       if (contactsBody.style.getPropertyValue('--contacts-label-width') !== width)
         contactsBody.style.setProperty('--contacts-label-width', width);
     }
@@ -2071,16 +2093,24 @@ SOFTWARE.
           '<span class="mobile-contact-label" data-hub-text="' + field + '-label">' + escapeHtml(entry.label) + '</span>' +
           '<span class="mobile-contact-value" data-hub-text="' + field + '-text">' + escapeHtml(entry.text) + '</span><span class="mobile-contact-fill" aria-hidden="true"></span></a>';
       }).join('') + '</div></section>').join('');
+    const actionLabel = item.action || 'В РАЗДЕЛ 0.1 ДЕНИС ГАРДАРИ';
+    const action = item.url
+      ? '<a class="mobile-contacts-back" data-hub-text="d08-action" href="' + escapeHtml(item.url) + '">' + escapeHtml(actionLabel) + '</a>'
+      : '<button type="button" class="mobile-contacts-back" data-hub-text="d08-action" data-phone-contact-action="back">' + escapeHtml(actionLabel) + '</button>';
+    const topAttributes = homeButtonsEnabled
+      ? ' data-hub-home="true" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
+      : ' aria-label="Наверх к меню" aria-controls="gardari-wheel"';
     return '<div class="mobile-card" role="region" aria-label="' + escapeHtml(item.title) + '">' +
       '<div class="panel-visual-row"><div class="panel-circle panel-image-frame"><div class="photo-reveal-stage">' +
       '<img data-hub-image="contacts" src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + ';filter:url(#hub-warm-mono)"></div><span class="photo-reveal-cover" aria-hidden="true"></span></div>' +
       '<div class="panel-visual-title"><div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span data-hub-text="d08-category">' + escapeHtml(item.category) + '</span></div>' +
       '<h2 data-hub-text="d08-heading">' + heading + '</h2>' +
-      '<span class="panel-heading-rule hub-line" aria-hidden="true"></span></div></div>' +
+      '<span class="panel-heading-rule hub-line" aria-hidden="true"></span>' +
+      '<span class="panel-info-eyebrow desktop-contacts-triad" data-hub-text="d08-subtitle">' + escapeHtml(item.subtitle || '') + '</span></div></div>' +
       '<div class="mobile-contacts-body">' + groups + '</div></div>' +
       '<span class="mobile-panel-number" aria-label="Раздел 0.8">0.8</span>' +
-      '<div class="mobile-contacts-actions"><button type="button" class="mobile-contacts-back" data-phone-contact-action="back">В РАЗДЕЛ 0.1 ДЕНИС ГАРДАРИ</button>' +
-      '<button type="button" class="mobile-contacts-top" data-phone-contact-action="top" aria-label="Наверх к меню" aria-controls="gardari-wheel">' +
+      '<div class="mobile-contacts-actions">' + action +
+      '<button type="button" class="mobile-contacts-top" data-phone-contact-action="top"' + topAttributes + '>' +
       '<svg class="mobile-contacts-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 15 7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></button></div>';
   }
 
@@ -2106,10 +2136,12 @@ SOFTWARE.
     const card = '<div class="mobile-card">' + visual + '<div class="panel-description' + (item.number === "0.1" ? ' panel-description--author' : '') + '">' + copy + '</div></div>' +
       '<span class="mobile-panel-number" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>';
     if (item.number === "0.1") {
-      const authorButtonAttributes = aboutEnabled
-        ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
-        : 'data-tooltip="Концепт Бюро" aria-label="Перейти к разделу 0.2" aria-controls="direction-panel"';
-      const authorChevron = aboutEnabled ? 'm5 9 7 7 7-7' : 'm9 5 7 7-7 7';
+      const authorButtonAttributes = homeButtonsEnabled
+        ? 'data-hub-home="true" data-tooltip="В раздел 0.1" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
+        : aboutEnabled
+          ? 'data-tooltip="Подробнее" aria-label="Перейти к подробностям обо мне" aria-controls="about-journey" aria-expanded="' + String(!aboutJourney.hidden) + '"'
+          : 'data-tooltip="Концепт Бюро" aria-label="Перейти к разделу 0.2" aria-controls="direction-panel"';
+      const authorChevron = homeButtonsEnabled ? 'm5 15 7-7 7 7' : aboutEnabled ? 'm5 9 7 7 7-7' : 'm9 5 7 7-7 7';
       return card +
         '<div id="hub-contact-links" class="panel-contact-row" role="group" aria-label="' + (aboutEnabled ? 'Контакты и подробности об авторе' : 'Контакты и переход к следующему разделу') + '">' +
           authorContacts.map(renderContact).join('') +
@@ -2118,11 +2150,16 @@ SOFTWARE.
           '</button></div>';
     } else {
       const linkProps = 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer"';
+      const ctaProps = homeButtonsEnabled
+        ? 'href="#main" data-hub-home="true" aria-controls="direction-panel"'
+        : linkProps;
+      const ctaLabel = homeButtonsEnabled ? 'В раздел 0.1 — Денис Гардари' : item.action;
+      const ctaChevron = homeButtonsEnabled ? 'm5 15 7-7 7 7' : 'm9 5 7 7-7 7';
       return card +
         '<div class="panel-route-row" role="group" aria-label="Переход в раздел ' + escapeHtml(item.short) + '">' +
           '<a class="panel-route-pill" ' + linkProps + '>' + escapeHtml(item.action) + '</a>' +
-          '<a class="panel-cta panel-cta--route" ' + linkProps + ' aria-label="' + escapeHtml(item.action) + '">' +
-            '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>' +
+          '<a class="panel-cta panel-cta--route" ' + ctaProps + ' aria-label="' + escapeHtml(ctaLabel) + '">' +
+            '<svg class="panel-cta-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="' + ctaChevron + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></a>' +
         '</div>';
     }
   }
@@ -2149,12 +2186,12 @@ SOFTWARE.
     const contacts = utility('mobile-contact-tile', '0.8', 'Контакты\nдля связи');
     const telegram = utility('mobile-telegram-tile', '0.9', 'Телеграм\nканал', 'https://t.me/gardariart');
     contacts.addEventListener('click', event => {
-      if (!phoneMedia.matches || event.defaultPrevented) return;
+      if (!isMatrixNavigation() || event.defaultPrevented) return;
       event.preventDefault();
       openMobileContacts();
     });
     telegram.addEventListener('click', event => {
-      if (!phoneMedia.matches || event.defaultPrevented) return;
+      if (!isMatrixNavigation() || event.defaultPrevented) return;
       phoneUtility = 'telegram'; syncPhoneNavigationState();
     });
     wheel.dataset.phoneNavReady = 'true';
@@ -2171,7 +2208,7 @@ SOFTWARE.
       outline.append(mask, body); face.prepend(outline); return {face, outline, mask, body};
     });
     function draw() {
-      if (!phoneMedia.matches) return;
+      if (!isMatrixNavigation()) return;
       records.forEach(({face, outline, mask, body}) => {
         // Layout metrics stay stable while the whole control is visually pressed.
         const style = getComputedStyle(face), badgeStyle = getComputedStyle(face.querySelector('.wheel-node-number'));
@@ -2223,7 +2260,7 @@ SOFTWARE.
   }
 
   function syncPhoneNavigationState() {
-    const phone = phoneMedia.matches;
+    const phone = isMatrixNavigation();
     buttons.forEach((button, index) => {
       const active = index === chosen && (!phone || phoneUtility === null);
       button.setAttribute('aria-pressed', String(active));
@@ -2247,7 +2284,16 @@ SOFTWARE.
     const cta = panel.querySelector('.panel-cta');
     if (!cta || !item) return;
     const path = cta.querySelector('.panel-cta-chevron path');
-    if (phoneMedia.matches) {
+    if (homeButtonsEnabled) {
+      cta.dataset.hubHome = 'true';
+      delete cta.dataset.mobileTop; delete cta.dataset.mobileNext;
+      cta.setAttribute('aria-label', 'В раздел 0.1 — Денис Гардари');
+      cta.setAttribute('aria-controls', 'direction-panel');
+      cta.setAttribute('data-tooltip', 'В раздел 0.1');
+      cta.removeAttribute('aria-expanded');
+      path?.setAttribute('d', 'm5 15 7-7 7 7');
+      if (cta.tagName === 'A') {cta.setAttribute('href', '#main'); cta.removeAttribute('target'); cta.removeAttribute('rel');}
+    } else if (phoneMedia.matches) {
       cta.dataset.mobileTop = 'true'; delete cta.dataset.mobileNext;
       cta.setAttribute('aria-label', 'Наверх к меню');
       cta.setAttribute('aria-controls', 'direction-panel');
@@ -2357,7 +2403,7 @@ SOFTWARE.
 
   function openMobileContacts(immediate = false) {
     const item = window.GARDARI_HUB_CONTENT.mobileContacts;
-    if (!phoneMedia.matches || !item) return;
+    if (!isMatrixNavigation() || !item) return;
     if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
     panelScrollTimer = null; phoneUtility = 'contacts';
     disposeWordBlockMotion(); disposeHeadingMotion(); disposePanelAppearance(); disposeHeadingRule();
@@ -2368,8 +2414,8 @@ SOFTWARE.
     alignAuthorComposition(panel); disposePanelAppearance = attachPanelAppearance(panel);
     disposeHeadingRule = attachHeadingRule(panel.querySelector('.panel-visual-title'));
     if (location.hash !== '#contacts') history.replaceState(null, '', location.pathname + location.search + '#contacts');
-    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:true, number:'0.8'}}));
-    if (!immediate) panelScrollTimer = setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:phoneMedia.matches, number:'0.8'}}));
+    if (!immediate && phoneMedia.matches) panelScrollTimer = setTimeout(() => {
       panelScrollTimer = null;
       if (phoneMedia.matches && panel.dataset.direction === '0.8') window.GARDARI_HUB_LAYOUT.scrollPanelTop(reducedMotion.matches ? 'auto' : 'smooth');
     }, 30);
@@ -2381,11 +2427,24 @@ SOFTWARE.
     window.GARDARI_HUB_LAYOUT.scrollTop('instant');
   }
 
+  function goHome() {
+    const index = directions.findIndex(item => item.number === '0.1');
+    if (index < 0) return;
+    if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
+    panelScrollTimer = null;
+    if (panel.dataset.direction !== '0.1') select(index, true);
+    window.GARDARI_HUB_LAYOUT.scrollTop('instant');
+  }
+
   panel.addEventListener("click", event => {
     const target = event.target;
     if (event.defaultPrevented || !(target instanceof Element)) return;
+    const home = target.closest('[data-hub-home]');
+    if (homeButtonsEnabled && home && panel.contains(home)) {
+      event.preventDefault(); goHome(); return;
+    }
     const contactAction = target.closest('[data-phone-contact-action]');
-    if (phoneMedia.matches && contactAction && panel.contains(contactAction)) {
+    if (isMatrixNavigation() && contactAction && panel.contains(contactAction)) {
       event.preventDefault();
       if (contactAction.dataset.phoneContactAction === 'back') select(0);
       else if (contactAction.dataset.phoneContactAction === 'top') scrollPhoneToMenu();
@@ -2429,7 +2488,7 @@ SOFTWARE.
     if (panel.dataset.direction === '0.8') clearContactsFragment();
     chosen = index;
     phoneUtility = null;
-    turnNavigationTo(index, !animateNavigation || phoneMedia.matches);
+    turnNavigationTo(index, !animateNavigation || isMatrixNavigation());
     if (directions[index].number !== "0.1" && aboutJourney) aboutJourney.hidden = true;
     buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
     dots.forEach((dot, i) => dot.classList.toggle("is-selected", i === index));
@@ -2466,6 +2525,7 @@ SOFTWARE.
   buttons.forEach(button => button.addEventListener("click", () => select(Number(button.dataset.index))));
 
   function drawOrbit() {
+    if (isDesktopMatrix()) {updateOrbitLabelEmphasis(); return;}
     const a = -Math.PI / 2 + progress * 2 * Math.PI;
     const point = polar(a, orbitRadius);
     orbiter.setAttribute("cx", point.x);
@@ -2476,6 +2536,7 @@ SOFTWARE.
   }
   function animate(time) {
     frameId = null;
+    if (isMatrixNavigation()) {endOrbit(); return;}
     if (lastTime === null) lastTime = time;
     const dt = Math.min(80, Math.max(0, time - lastTime));
     lastTime = time;
@@ -2488,10 +2549,10 @@ SOFTWARE.
     updateNavigationTurn(time);
     drawParticleField(time);
     drawOrbit();
-    if (!phoneMedia.matches && wheelVisible && !document.hidden && !reducedMotion.matches) frameId = requestAnimationFrame(animate);
+    if (!isMatrixNavigation() && wheelVisible && !document.hidden && !reducedMotion.matches) frameId = requestAnimationFrame(animate);
   }
   function beginOrbit() {
-    if (phoneMedia.matches || frameId !== null || !wheelVisible || document.hidden || reducedMotion.matches) return;
+    if (isMatrixNavigation() || frameId !== null || !wheelVisible || document.hidden || reducedMotion.matches) return;
     lastTime = null;
     frameId = requestAnimationFrame(animate);
   }
@@ -2529,7 +2590,7 @@ SOFTWARE.
     select(index, true, event.detail?.animate === true);
   });
   function revealFragment() {
-    if (location.hash === '#contacts' && phoneMedia.matches) {
+    if (location.hash === '#contacts' && isMatrixNavigation()) {
       openMobileContacts(true); requestAnimationFrame(() => window.GARDARI_HUB_LAYOUT.scrollPanelTop()); return;
     }
     if (!aboutEnabled) return;
@@ -2545,9 +2606,9 @@ SOFTWARE.
   setupPhoneTileOutlines();
   phoneMedia.addEventListener('change', () => {
     const hadContacts = panel.dataset.direction === '0.8';
-    phoneUtility = null;
-    if (hadContacts && !phoneMedia.matches) {clearContactsFragment(); renderPanel(chosen);}
-    if (phoneMedia.matches) {
+    phoneUtility = hadContacts && isMatrixNavigation() ? 'contacts' : null;
+    if (hadContacts && !isMatrixNavigation()) {clearContactsFragment(); renderPanel(chosen);}
+    if (isMatrixNavigation()) {
       endOrbit(); pointer.active = false; pointer.targetX = pointer.targetY = pointer.x = pointer.y = pointer.strength = 0;
       nextWordAt = Infinity;
     } else if (wheelVisible && !document.hidden && !reducedMotion.matches) beginOrbit();
@@ -2555,7 +2616,7 @@ SOFTWARE.
   });
   select(chosen, true);
   document.body.classList.add('phone-ui-ready');
-  if (phoneMedia.matches) endOrbit();
+  if (isMatrixNavigation()) endOrbit();
   revealFragment();
   window.addEventListener("hub:field-redraw", () => drawParticleField(performance.now()));
   resizeParticleCanvas();
@@ -2566,12 +2627,13 @@ SOFTWARE.
 /* A short retained state makes quick phone taps visible without delaying actions. */
 (() => {
   const phone = window.GARDARI_HUB_LAYOUT.media;
-  const selector = '#gardari-wheel .mobile-matrix-tile,#direction-panel .mobile-word-cta,#direction-panel .panel-cta,#direction-panel .contact-icon,#direction-panel .panel-route-pill,#direction-panel .mobile-contacts-actions button';
+  const matrixNavigation = () => window.GARDARI_HUB_LAYOUT.isMatrixNavigation();
+  const selector = '#gardari-wheel .mobile-matrix-tile,#direction-panel .mobile-word-cta,#direction-panel .panel-cta,#direction-panel .contact-icon,#direction-panel .panel-route-pill,#direction-panel .mobile-contacts-actions :is(button,a)';
   const timers = new Map();
   const minimumPress = 120;
   let pointer = null, keyboard = null;
   function control(event) {
-    if (!phone.matches || !(event.target instanceof Element)) return null;
+    if (!matrixNavigation() || !(event.target instanceof Element)) return null;
     const node = event.target.closest(selector);
     return node && !node.disabled && node.getAttribute('aria-disabled') !== 'true' ? node : null;
   }
@@ -2638,5 +2700,137 @@ SOFTWARE.
   window.addEventListener('scroll', () => {if (pointer) endPointer(true);}, {capture:true,passive:true});
   window.addEventListener('blur', clearAll);
   document.addEventListener('visibilitychange', () => {if (document.hidden) clearAll();});
-  phone.addEventListener('change', () => {if (!phone.matches) clearAll();});
+  phone.addEventListener('change', () => {if (!matrixNavigation()) clearAll();});
+})();
+
+
+/* Candidate-only outline and placement; no source data, editor state or history writes. */
+(() => {
+  'use strict';
+  const root = document.documentElement;
+  const panel = document.getElementById('direction-panel');
+  const grid = document.querySelector('.hub-grid');
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const contactInk = document.createElement('canvas').getContext('2d');
+  let scheduled = false;
+  let observedCard = null;
+  const resize = new ResizeObserver(schedule);
+  const n = value => Number(value.toFixed(4));
+  function schedule() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; update(); });
+  }
+  function update() {
+    if (root.dataset.hubLayout !== 'desktop' || root.dataset.hubDesktop !== 'true') {
+      resize.disconnect();
+      observedCard = null;
+      grid.style.removeProperty('--pilot-nav-offset');
+      return;
+    }
+    const card = panel.querySelector('.mobile-card');
+    const photo = card?.querySelector('.panel-circle');
+    if (!card || !photo) return;
+    let outline = card.querySelector('.desktop-card-outline');
+    if (!outline) {
+      outline = document.createElementNS(svgNS, 'svg');
+      outline.classList.add('desktop-card-outline');
+      outline.setAttribute('aria-hidden', 'true');
+      outline.setAttribute('focusable', 'false');
+      outline.setAttribute('preserveAspectRatio', 'none');
+      outline.append(document.createElementNS(svgNS, 'path'));
+      card.prepend(outline);
+    }
+    const box = card.getBoundingClientRect(), image = photo.getBoundingClientRect();
+    const width = box.width, height = box.height;
+    if (width < 1 || height < 1 || image.width < 1) return;
+    const cx = image.left + image.width / 2 - box.left;
+    const cy = image.top + image.height / 2 - box.top;
+    const radius = image.width / 2 + 20;
+    const corner = 12, edge = .5;
+    // External tangencies join the photo circle to the straight top/left edges.
+    const leftJoin = cy + Math.sqrt(Math.max(0, (radius + corner) ** 2 - (cx + corner - edge) ** 2));
+    const topJoin = cx + Math.sqrt(Math.max(0, (radius + corner) ** 2 - (cy + corner - edge) ** 2));
+    const leftTangent = {
+      x: cx + (edge - corner - cx) * radius / (radius + corner),
+      y: cy + (leftJoin - cy) * radius / (radius + corner)
+    };
+    const topTangent = {
+      x: cx + (topJoin - cx) * radius / (radius + corner),
+      y: cy + (edge - corner - cy) * radius / (radius + corner)
+    };
+    // Reuse the accepted number/notch relationship in the upper right corner.
+    const badge = panel.querySelector('.mobile-panel-number')?.getBoundingClientRect();
+    const badgeX = badge ? badge.left + badge.width / 2 - box.left : width - 12;
+    const badgeY = badge ? badge.top + badge.height / 2 - box.top : 12;
+    const notch = (badge?.width || 24) / 2 + 6.5 + edge;
+    const topNotch = badgeX - Math.sqrt(Math.max(0, (notch + corner) ** 2 - (edge + corner - badgeY) ** 2));
+    const rightNotch = badgeY + Math.sqrt(Math.max(0, (notch + corner) ** 2 - (width - edge - corner - badgeX) ** 2));
+    const notchTopPoint = {
+      x: badgeX + (topNotch - badgeX) * notch / (notch + corner),
+      y: badgeY + (edge + corner - badgeY) * notch / (notch + corner)
+    };
+    const notchRightPoint = {
+      x: badgeX + (width - edge - corner - badgeX) * notch / (notch + corner),
+      y: badgeY + (rightNotch - badgeY) * notch / (notch + corner)
+    };
+    const d = [
+      'M',n(topJoin),edge,'H',n(topNotch),
+      'A',corner,corner,0,0,1,n(notchTopPoint.x),n(notchTopPoint.y),
+      'A',n(notch),n(notch),0,0,0,n(notchRightPoint.x),n(notchRightPoint.y),
+      'A',corner,corner,0,0,1,n(width-edge),n(rightNotch),
+      'V',n(height-corner-edge),'Q',n(width-edge),n(height-edge),n(width-corner-edge),n(height-edge),
+      'H',corner+edge,'Q',edge,n(height-edge),edge,n(height-corner-edge),
+      'V',n(leftJoin),'A',corner,corner,0,0,0,n(leftTangent.x),n(leftTangent.y),
+      'A',n(radius),n(radius),0,1,1,n(topTangent.x),n(topTangent.y),
+      'A',corner,corner,0,0,0,n(topJoin),edge,'Z'
+    ].join(' ');
+    outline.setAttribute('viewBox', `0 0 ${n(width)} ${n(height)}`);
+    if (outline.firstElementChild.getAttribute('d') !== d) outline.firstElementChild.setAttribute('d', d);
+    card.dataset.desktopOutline = 'photo-and-number';
+    card.dataset.desktopPhotoClearance = '20';
+    const title = panel.querySelector('.panel-visual-title');
+    const triad = title?.querySelector('.panel-info-eyebrow');
+    if (triad) {
+      const text = document.createRange();
+      text.selectNodeContents(triad);
+      const triadBox = text.getBoundingClientRect(), titleBox = title.getBoundingClientRect();
+      title.style.setProperty('--pilot-rule-left', n(triadBox.left - titleBox.left) + 'px');
+      title.style.setProperty('--pilot-rule-width', n(triadBox.width) + 'px');
+    }
+    // Contact headings use their actual glyph top, rather than empty line-box air.
+    const paragraph = panel.querySelector('.panel-description-copy p:not(:empty),.mobile-contacts-body');
+    if (paragraph) {
+      let anchorTop = paragraph.getBoundingClientRect().top;
+      const heading = panel.dataset.direction === '0.8' ? paragraph.querySelector('h3') : null;
+      if (heading && contactInk) {
+        const style = getComputedStyle(heading), size = parseFloat(style.fontSize) || 27;
+        let text = heading.textContent.trim();
+        if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase('ru');
+        else if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('ru');
+        contactInk.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+        const metrics = contactInk.measureText(text);
+        const ascent = metrics.fontBoundingBoxAscent || metrics.emHeightAscent || size * .8;
+        const descent = metrics.fontBoundingBoxDescent || metrics.emHeightDescent || size * .2;
+        const lineHeight = parseFloat(style.lineHeight) || size * 1.2;
+        anchorTop = heading.getBoundingClientRect().top + (lineHeight - ascent - descent) / 2 + ascent - (metrics.actualBoundingBoxAscent || size * .72);
+      }
+      const offset = Math.max(0, anchorTop - grid.getBoundingClientRect().top);
+      const value = n(offset) + 'px';
+      if (grid.style.getPropertyValue('--pilot-nav-offset') !== value) grid.style.setProperty('--pilot-nav-offset', value);
+    }
+    if (observedCard !== card) {
+      resize.disconnect();
+      [card,photo,panel.querySelector('.panel-visual-title')].filter(Boolean).forEach(element => resize.observe(element));
+      observedCard = card;
+    }
+  }
+  const content = new MutationObserver(schedule);
+  content.observe(panel, {childList: true, subtree: true});
+  window.addEventListener('resize', schedule, {passive:true});
+  window.addEventListener('hub:layout-change', schedule);
+  window.addEventListener('hub:mobile-ui-updated', schedule);
+  panel.addEventListener('load', schedule, true);
+  document.fonts?.ready.then(schedule);
+  schedule();
 })();

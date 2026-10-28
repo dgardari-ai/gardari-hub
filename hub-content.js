@@ -240,11 +240,6 @@ window.GARDARI_HUB_CONTENT = {
       "icon": "vk",
       "label": "ВКонтакте · vk.com/gardari",
       "url": "https://vk.com/gardari"
-    },
-    {
-      "icon": "phone",
-      "label": "+7 (343) 375-89-87",
-      "url": "tel:+73433758987"
     }
   ],
   "styles": {
@@ -261,7 +256,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d01-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -345,7 +340,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d02-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -363,7 +358,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d03-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -381,7 +376,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d04-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -399,7 +394,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d05-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -417,7 +412,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d06-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -435,7 +430,7 @@ window.GARDARI_HUB_CONTENT = {
     },
     "d07-text": {
       "all": {
-        "font-size": "19px",
+        "font-size": "21px",
         "line-height": "24px"
       },
       "mobile": {
@@ -1449,18 +1444,6 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "1.4"
       }
     },
-    "d08-gallery-phone-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-phone-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
     "d08-gallery-address-label": {
       "tablet": {
         "font-size": "12px",
@@ -1507,7 +1490,9 @@ window.GARDARI_HUB_CONTENT = {
   "features": {
     "aboutJourney": false,
     "directionComposition": true,
-    "adaptiveLayout": true
+    "adaptiveLayout": true,
+    "desktopLayout": true,
+    "homeButtons": true
   },
   "mobileContacts": {
     "number": "0.8",
@@ -1594,13 +1579,6 @@ window.GARDARI_HUB_CONTENT = {
             "icon": "email"
           },
           {
-            "id": "phone",
-            "label": "Телефон галереи",
-            "text": "+7 (343) 375-89-87",
-            "url": "tel:+73433758987",
-            "icon": "phone"
-          },
-          {
             "id": "address",
             "label": "Адрес галереи",
             "text": "Екатеринбург, ул. Азина, 22/2, офис 8",
@@ -1629,6 +1607,9 @@ window.GARDARI_HUB_CONTENT = {
           }
         ]
       }
-    ]
+    ],
+    "subtitle": "САЙТЫ · ПОЧТА · ССЫЛКИ",
+    "action": "НАПИСАТЬ ПИСЬМО НА ПОЧТУ",
+    "url": "mailto:hub@gardari.art"
   }
 };
