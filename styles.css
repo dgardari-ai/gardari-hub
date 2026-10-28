@@ -1019,3 +1019,77 @@ html[data-hub-desktop="true"][data-hub-layout="desktop"] #direction-panel[data-d
     transform: translateY(0);
   }
 }
+
+/* Approved compact transition window. */
+.hub-exit-dialog {
+  --exit-circle: 68px;
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 30px 24px 26px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ink);
+  border-radius: 20px;
+  background: #eef0f2;
+  color: var(--ink);
+  text-align: center;
+  box-shadow: none;
+}
+.hub-exit-dialog::backdrop { background: rgb(32 33 36 / 23%); }
+.hub-exit-question {
+  margin: 0;
+  color: var(--ink);
+  font: 700 30px/1.06 Arial, Helvetica, sans-serif;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+.hub-exit-question span { display: block; }
+.hub-exit-description {
+  margin: 18px 0 0;
+  color: var(--body);
+  font: 400 13px/1.45 var(--label-font);
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.hub-exit-actions { display: flex; justify-content: center; gap: 22px; margin-top: 26px; }
+.hub-exit-choice {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  flex: 0 0 var(--exit-circle);
+  width: var(--exit-circle);
+  height: var(--exit-circle);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  color: var(--ink);
+  background: var(--accent);
+  font: 400 14px/1 var(--label-font);
+  letter-spacing: 0;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .14s var(--ease);
+}
+.hub-exit-no { background: #000; color: #fff; border-color: #000; }
+.hub-exit-choice:active { transform: scale(.94); }
+.hub-exit-choice:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.hub-exit-dialog[open] { animation: exit-appear .16s var(--ease); }
+@keyframes exit-appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@media (min-width: 701px) {
+  .hub-exit-dialog { --exit-circle: 76px; padding: 34px 30px 30px; }
+  .hub-exit-question { font-size: 34px; }
+  .hub-exit-description { font-size: 14px; }
+  .hub-exit-actions { margin-top: 30px; gap: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-exit-dialog[open] { animation: none; }
+  .hub-exit-choice { transition: none; }
+}

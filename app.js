@@ -2875,3 +2875,105 @@ SOFTWARE.
   document.fonts?.ready.then(schedule);
   schedule();
 })();
+
+/* Confirm the large circle in the compact word stripes before leaving the section. */
+(() => {
+  if (!window.GARDARI_HUB_LAYOUT || window.GARDARI_HUB_CONTENT?.features?.adaptiveLayout !== true) return;
+  // The local editor injects this bridge. Follow its existing trusted mode protocol.
+  const authoringFrame = window.parent !== window &&
+    ['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname) &&
+    Boolean(document.querySelector('script[src="/bridge.js"]'));
+  let editing = authoringFrame;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'hub-exit-dialog';
+  dialog.setAttribute('aria-labelledby', 'hub-exit-question');
+  dialog.setAttribute('aria-describedby', 'hub-exit-description');
+  dialog.innerHTML = '<p class="hub-exit-question" id="hub-exit-question"><span id="hub-exit-prefix"></span><span id="hub-exit-name"></span></p>' +
+    '<p class="hub-exit-description" id="hub-exit-description">Откроется в новой вкладке.</p>' +
+    '<div class="hub-exit-actions"><button type="button" class="hub-exit-choice hub-exit-no">Нет</button>' +
+    '<a class="hub-exit-choice hub-exit-yes" target="_blank" rel="noopener noreferrer">Да</a></div>';
+  document.body.append(dialog);
+  const no = dialog.querySelector('.hub-exit-no');
+  const yes = dialog.querySelector('.hub-exit-yes');
+  let trigger = null;
+  let previousRootOverflow = '';
+  let previousPanelOverflow = '';
+  let lockedPanel = null;
+  let confirmedContact = null;
+  let confirmedBypass = null;
+  function close() { if (dialog.open) dialog.close(); }
+  function open(link) {
+    if (dialog.open || editing || !window.GARDARI_HUB_LAYOUT.isCompact()) return;
+    const panel = document.getElementById('direction-panel');
+    const item = window.GARDARI_HUB_CONTENT.directions.find(item => item.number === panel.dataset.direction);
+    if (!item || !/^https?:$/.test(new URL(link.href).protocol)) return;
+    trigger = link;
+    const internal = link.hasAttribute('data-phone-contacts');
+    dialog.querySelector('#hub-exit-prefix').textContent = internal ? 'Перейти на раздел ' : 'Перейти на страницу ';
+    dialog.querySelector('#hub-exit-name').textContent = internal ? 'контактов?' : '«' + item.title + '»?';
+    dialog.querySelector('#hub-exit-description').hidden = internal;
+    if (internal) dialog.removeAttribute('aria-describedby');
+    else dialog.setAttribute('aria-describedby', 'hub-exit-description');
+    yes.href = link.href;
+    if (internal) { yes.removeAttribute('target'); yes.removeAttribute('rel'); }
+    else { yes.target = '_blank'; yes.rel = 'noopener noreferrer'; }
+    previousRootOverflow = document.documentElement.style.overflow;
+    previousPanelOverflow = panel.style.overflow;
+    lockedPanel = panel;
+    document.documentElement.style.overflow = 'hidden';
+    panel.style.overflow = 'hidden';
+    dialog.showModal();
+    no.focus({preventScroll: true});
+  }
+  dialog.addEventListener('close', () => {
+    document.documentElement.style.overflow = previousRootOverflow;
+    if (lockedPanel) lockedPanel.style.overflow = previousPanelOverflow;
+    lockedPanel = null;
+    const contact = confirmedContact;
+    confirmedContact = null;
+    if (contact?.isConnected) {
+      confirmedBypass = contact;
+      try { contact.click(); }
+      finally { confirmedBypass = null; }
+    } else if (trigger?.isConnected) trigger.focus({preventScroll: true});
+  });
+  no.addEventListener('click', close);
+  yes.addEventListener('click', event => {
+    if (trigger?.hasAttribute('data-phone-contacts')) {
+      event.preventDefault();
+      confirmedContact = trigger;
+    }
+    close();
+  });
+  let backdropStart = false;
+  const outside = event => {
+    const r = dialog.getBoundingClientRect();
+    return event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom;
+  };
+  dialog.addEventListener('pointerdown', event => { backdropStart = event.target === dialog && outside(event); });
+  dialog.addEventListener('click', event => {
+    if (backdropStart && event.target === dialog && outside(event)) close();
+    backdropStart = false;
+  });
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || !(event.target instanceof Element) || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('#direction-panel .mobile-word-cta');
+    if (!link || editing || !window.GARDARI_HUB_LAYOUT.isCompact()) return;
+    if (link === confirmedBypass) { confirmedBypass = null; return; }
+    event.preventDefault();
+    open(link);
+  }, true);
+  window.addEventListener('message', event => {
+    if (!authoringFrame || event.source !== window.parent || event.origin !== location.origin) return;
+    const message = event.data;
+    if (!message || typeof message !== 'object') return;
+    if (message.type === 'vmg:init') editing = message.editing !== false;
+    else if (message.type === 'vmg:mode') editing = !!message.editing;
+    else return;
+    if (editing) close();
+  });
+  window.addEventListener('hub:select', close);
+  window.addEventListener('hub:layout-change', () => {
+    if (!window.GARDARI_HUB_LAYOUT.isCompact()) close();
+  });
+})();
