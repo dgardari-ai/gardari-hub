@@ -2156,7 +2156,7 @@ SOFTWARE.
       '<div class="panel-description-support"><p>' + escapeHtml(item.detail) + '</p>' + more + '</div></div>';
     const copy = directionComposition ? directionCompositionMarkup(item) : legacyCopy;
     const card = '<div class="mobile-card">' + visual + '<div class="panel-description' + (item.number === "0.1" ? ' panel-description--author' : '') + '">' + copy + '</div></div>' +
-      '<span class="mobile-panel-number" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>';
+      '<span class="mobile-panel-number' + (item.number === '0.1' ? ' mobile-panel-number--brand' : '') + '" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>';
     if (item.number === "0.1") {
       const authorButtonAttributes = introNextEnabled
         ? 'data-hub-next="true" data-tooltip="Следующий раздел" aria-label="Следующий раздел" aria-controls="direction-panel"'
