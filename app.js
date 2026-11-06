@@ -766,6 +766,10 @@ SOFTWARE.
 
   // Единая конфигурация направлений. Неопубликованные адреса — пилотные маршруты.
   const directions = window.GARDARI_HUB_CONTENT.directions;
+  // Resolve contact identity from the saved data so undo can reopen both schemas.
+  const contactsNumber = window.GARDARI_HUB_CONTENT.mobileContacts?.number || "0.8";
+  const hasHomoCogitans = directions.some(item => item.number === "0.8");
+  const showLegacyTelegram = directions.length < 8;
   const directionComposition = window.GARDARI_HUB_CONTENT.features?.directionComposition === true;
   const homeButtonsEnabled = window.GARDARI_HUB_CONTENT.features?.homeButtons === true;
   const introNextEnabled = homeButtonsEnabled && window.GARDARI_HUB_CONTENT.features?.introNext === true;
@@ -793,7 +797,8 @@ SOFTWARE.
   const isMatrixNavigation = () => window.GARDARI_HUB_LAYOUT.isMatrixNavigation();
   const originalWheelLabel = wheel.getAttribute("aria-label");
   let phoneUtility = null;
-  let chosen = directions.findIndex(item => item.number === "0.1");
+  let chosen = Math.max(0, directions.findIndex(item => item.number ===
+    (location.hash === "#homo-cogitans" && hasHomoCogitans ? "0.8" : "0.1")));
   let panelScrollTimer = null;
   let progress = 0;
   let lastTime = null;
@@ -1854,7 +1859,7 @@ SOFTWARE.
 
   // Contact stripes start at lowercase x-height and extend down to the underline.
   function alignMobileContactRules(scope) {
-    if (!isMatrixNavigation() || scope?.dataset.direction !== '0.8') return;
+    if (!isMatrixNavigation() || scope?.dataset.contactPage !== 'true') return;
     const ink = document.createElement('canvas').getContext('2d');
     if (!ink) return;
     // Reserve one shared label column using natural text metrics, independent of prior widths.
@@ -1976,7 +1981,49 @@ SOFTWARE.
       lead.style.removeProperty('line-height');
       for (const name of ['heightFit', 'heightFitLines', 'heightFitTarget', 'heightFitInk', 'heightFitMode', 'heightFitMin']) delete lead.dataset[name];
     };
+    // Desktop: retain accepted typography wherever it already fits the word column.
+    // Only an overflowing lead receives the smallest necessary font reduction.
+    // Reset only our own temporary font override, including on compact layouts.
+    if (lead.dataset.desktopFontFit) {
+      lead.style.removeProperty('font-size');
+      delete lead.dataset.desktopFontFit;
+    }
     if (window.GARDARI_HUB_LAYOUT.isCompact()) { clearFit(); return; }
+    {
+      const copy = lead.querySelector('.intro-type-ghost') || lead;
+      const availableHeight = list.getBoundingClientRect().height;
+      const baseSize = parseFloat(getComputedStyle(lead).fontSize);
+      const fits = () => {
+        const measureRange = document.createRange(); measureRange.selectNodeContents(copy);
+        const rows = [];
+        for (const rect of measureRange.getClientRects()) {
+          if (rect.width > 0 && rect.height > 0 && !rows.some(top => Math.abs(top - rect.top) < .5)) rows.push(rect.top);
+        }
+        const copyStyle = getComputedStyle(lead);
+        ink.font = [copyStyle.fontStyle, copyStyle.fontWeight, copyStyle.fontSize, copyStyle.fontFamily].join(' ');
+        const bounds = ink.measureText(copy.textContent);
+        const minimumLine = Math.max(parseFloat(copyStyle.fontSize) * 1.02,
+          (bounds.actualBoundingBoxAscent || 0) + (bounds.actualBoundingBoxDescent || 0) + 1.5);
+        return rows.length > 0 && rows.length * minimumLine <= availableHeight;
+      };
+      if (baseSize > 0 && availableHeight > 0 && !fits()) {
+        let low = Math.min(baseSize, 16), high = baseSize;
+        lead.style.setProperty('font-size', low + 'px', 'important');
+        if (fits()) {
+          for (let attempt = 0; attempt < 9; attempt++) {
+            const middle = (low + high) / 2;
+            lead.style.setProperty('font-size', middle + 'px', 'important');
+            if (fits()) low = middle; else high = middle;
+          }
+          const fittedSize = Math.floor(low * 100) / 100;
+          lead.style.setProperty('font-size', fittedSize + 'px', 'important');
+          lead.dataset.desktopFontFit = String(fittedSize);
+        } else {
+          // Never force illegibly small text at an unexpected width.
+          lead.style.removeProperty('font-size');
+        }
+      }
+    }
     const fullCopy = lead.querySelector('.intro-type-ghost') || lead;
     const range = document.createRange(); range.selectNodeContents(fullCopy);
     const tops = [];
@@ -2103,13 +2150,14 @@ SOFTWARE.
       '<div class="panel-description-support author-closing">' + paragraph('more1', item.more?.[1]) + '</div></div>';
   }
 
-  // A phone-only utility page leaves the seven canonical directions intact.
+  // A phone-only utility page leaves the eight canonical directions intact.
   function mobileContactsMarkup(item) {
-    const heading = item.head.map((line, index) => '<span class="panel-heading-line" data-hub-text="d08-head' + index + '">' + escapeHtml(line) + '</span>').join(' ');
+    const fieldPrefix = 'd' + String(item.number).replace('.', '') + '-';
+    const heading = item.head.map((line, index) => '<span class="panel-heading-line" data-hub-text="' + fieldPrefix + 'head' + index + '">' + escapeHtml(line) + '</span>').join(' ');
     const groups = item.groups.map(group => '<section class="mobile-contact-group" data-contact-group="' + escapeHtml(group.id) + '">' +
-      '<h3 data-hub-text="d08-group-' + escapeHtml(group.id) + '"><span>' + escapeHtml(group.title) + '</span></h3>' +
+      '<h3 data-hub-text="' + fieldPrefix + 'group-' + escapeHtml(group.id) + '"><span>' + escapeHtml(group.title) + '</span></h3>' +
       '<div class="mobile-contact-list">' + group.items.map(entry => {
-        const key = group.id + '.' + entry.id, field = 'd08-' + group.id + '-' + entry.id;
+        const key = group.id + '.' + entry.id, field = fieldPrefix + group.id + '-' + entry.id;
         const external = /^https?:\/\//.test(entry.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
         return '<a class="mobile-contact-link" data-mobile-contact="' + escapeHtml(key) + '" href="' + escapeHtml(entry.url) + '"' + external + '>' +
           '<span class="mobile-contact-label" data-hub-text="' + field + '-label">' + escapeHtml(entry.label) + '</span>' +
@@ -2117,20 +2165,20 @@ SOFTWARE.
       }).join('') + '</div></section>').join('');
     const actionLabel = item.action || 'В РАЗДЕЛ 0.1 ДЕНИС ГАРДАРИ';
     const action = item.url
-      ? '<a class="mobile-contacts-back" data-hub-text="d08-action" href="' + escapeHtml(item.url) + '">' + escapeHtml(actionLabel) + '</a>'
-      : '<button type="button" class="mobile-contacts-back" data-hub-text="d08-action" data-phone-contact-action="back">' + escapeHtml(actionLabel) + '</button>';
+      ? '<a class="mobile-contacts-back" data-hub-text="' + fieldPrefix + 'action" href="' + escapeHtml(item.url) + '">' + escapeHtml(actionLabel) + '</a>'
+      : '<button type="button" class="mobile-contacts-back" data-hub-text="' + fieldPrefix + 'action" data-phone-contact-action="back">' + escapeHtml(actionLabel) + '</button>';
     const topAttributes = homeButtonsEnabled
       ? ' data-hub-home="true" data-tooltip="В раздел 0.1 — Денис Гардари" aria-label="В раздел 0.1 — Денис Гардари" aria-controls="direction-panel"'
       : ' data-tooltip="Наверх к меню" aria-label="Наверх к меню" aria-controls="gardari-wheel"';
     return '<div class="mobile-card" role="region" aria-label="' + escapeHtml(item.title) + '">' +
       '<div class="panel-visual-row"><div class="panel-circle panel-image-frame"><div class="photo-reveal-stage">' +
       '<img data-hub-image="contacts" src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.imageAlt) + '" style="object-position:' + escapeHtml(item.imagePosition) + ';filter:url(#hub-warm-mono)"></div><span class="photo-reveal-cover" aria-hidden="true"></span></div>' +
-      '<div class="panel-visual-title"><div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span data-hub-text="d08-category">' + escapeHtml(item.category) + '</span></div>' +
-      '<h2 data-hub-text="d08-heading">' + heading + '</h2>' +
+      '<div class="panel-visual-title"><div class="panel-context"><span>' + escapeHtml(item.number) + '</span><span data-hub-text="' + fieldPrefix + 'category">' + escapeHtml(item.category) + '</span></div>' +
+      '<h2 data-hub-text="' + fieldPrefix + 'heading">' + heading + '</h2>' +
       '<span class="panel-heading-rule hub-line" aria-hidden="true"></span>' +
-      '<span class="panel-info-eyebrow desktop-contacts-triad" data-hub-text="d08-subtitle">' + escapeHtml(item.subtitle || '') + '</span></div></div>' +
+      '<span class="panel-info-eyebrow desktop-contacts-triad" data-hub-text="' + fieldPrefix + 'subtitle">' + escapeHtml(item.subtitle || '') + '</span></div></div>' +
       '<div class="mobile-contacts-body">' + groups + '</div></div>' +
-      '<span class="mobile-panel-number" aria-label="Раздел 0.8">0.8</span>' +
+      '<span class="mobile-panel-number" aria-label="Раздел ' + escapeHtml(item.number) + '">' + escapeHtml(item.number) + '</span>' +
       '<div class="mobile-contacts-actions">' + action +
       '<button type="button" class="mobile-contacts-top" data-phone-contact-action="top"' + topAttributes + '>' +
       '<svg class="mobile-contacts-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 15 7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"></path></svg></button></div>';
@@ -2188,7 +2236,7 @@ SOFTWARE.
     }
   }
 
-  // The same seven canonical controls become phone tiles; utilities are separate actions.
+  // The same eight canonical controls become phone tiles; utilities are separate actions.
   function setupPhoneNavigation() {
     buttons.forEach(button => {
       button.classList.add('mobile-matrix-tile');
@@ -2207,17 +2255,20 @@ SOFTWARE.
       const name = document.createElement('span'); name.className = 'wheel-node-name'; renderNavigationCaption(name, caption);
       face.append(badge, name); node.append(face); wheel.append(node); return node;
     };
-    const contacts = utility('mobile-contact-tile', '0.8', 'Контакты\nдля связи');
-    const telegram = utility('mobile-telegram-tile', '0.9', 'Телеграм\nканал', 'https://t.me/gardariart');
+    const contacts = utility('mobile-contact-tile', contactsNumber, 'Контакты\nдля связи');
     contacts.addEventListener('click', event => {
       if (!isMatrixNavigation() || event.defaultPrevented) return;
       event.preventDefault();
       openMobileContacts();
     });
-    telegram.addEventListener('click', event => {
-      if (!isMatrixNavigation() || event.defaultPrevented) return;
-      phoneUtility = 'telegram'; syncPhoneNavigationState();
-    });
+    // History before the eighth direction retains the former ninth Telegram tile.
+    if (showLegacyTelegram) {
+      const telegram = utility('mobile-telegram-tile', '0.9', 'Телеграм\nканал', 'https://t.me/gardariart');
+      telegram.addEventListener('click', event => {
+        if (!isMatrixNavigation() || event.defaultPrevented) return;
+        phoneUtility = 'telegram'; syncPhoneNavigationState();
+      });
+    }
     wheel.dataset.phoneNavReady = 'true';
   }
 
@@ -2297,7 +2348,9 @@ SOFTWARE.
       node.classList.toggle('is-mobile-active', active);
       if (node.tagName === 'BUTTON') node.setAttribute('aria-pressed', String(active));
     }
-    wheel.setAttribute('aria-label', phone ? 'Семь разделов, контакты и Телеграм-канал' : originalWheelLabel);
+    wheel.setAttribute('aria-label', phone
+      ? (showLegacyTelegram ? 'Семь разделов, контакты и Телеграм-канал' : 'Восемь разделов и контакты')
+      : originalWheelLabel);
     window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated'));
   }
 
@@ -2414,6 +2467,7 @@ SOFTWARE.
     disposePanelAppearance();
     disposeHeadingRule();
     const item = directions[index];
+    delete panel.dataset.contactPage;
     panel.dataset.direction = item.number;
     panel.innerHTML = panelMarkup(item);
     syncPhonePanelControls();
@@ -2434,17 +2488,18 @@ SOFTWARE.
     if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
     panelScrollTimer = null; phoneUtility = 'contacts';
     disposeWordBlockMotion(); disposeHeadingMotion(); disposePanelAppearance(); disposeHeadingRule();
-    panel.dataset.direction = '0.8'; panel.innerHTML = mobileContactsMarkup(item);
+    panel.dataset.contactPage = 'true';
+    panel.dataset.direction = item.number; panel.innerHTML = mobileContactsMarkup(item);
     if (aboutJourney) aboutJourney.hidden = true;
     syncPhoneNavigationState();
     disposeHeadingMotion = attachHeadingMotion(panel.querySelector('.panel-visual-title h2'));
     alignAuthorComposition(panel); disposePanelAppearance = attachPanelAppearance(panel);
     disposeHeadingRule = attachHeadingRule(panel.querySelector('.panel-visual-title'));
     if (location.hash !== '#contacts') history.replaceState(null, '', location.pathname + location.search + '#contacts');
-    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:phoneMedia.matches, number:'0.8'}}));
+    window.dispatchEvent(new CustomEvent('hub:mobile-ui-updated', {detail:{phone:phoneMedia.matches, number:item.number}}));
     if (!immediate && phoneMedia.matches) panelScrollTimer = setTimeout(() => {
       panelScrollTimer = null;
-      if (phoneMedia.matches && panel.dataset.direction === '0.8') window.GARDARI_HUB_LAYOUT.scrollPanelTop(reducedMotion.matches ? 'auto' : 'smooth');
+      if (phoneMedia.matches && panel.dataset.contactPage === 'true') window.GARDARI_HUB_LAYOUT.scrollPanelTop(reducedMotion.matches ? 'auto' : 'smooth');
     }, 30);
   }
 
@@ -2526,7 +2581,12 @@ SOFTWARE.
     if (!Number.isInteger(index) || index < 0 || index >= directions.length) return;
     if (panelScrollTimer !== null) window.clearTimeout(panelScrollTimer);
     panelScrollTimer = null;
-    if (panel.dataset.direction === '0.8') clearContactsFragment();
+    if (panel.dataset.contactPage === 'true') clearContactsFragment();
+    if (directions[index].number === '0.8') {
+      if (location.hash !== '#homo-cogitans') history.replaceState(null, '', location.pathname + location.search + '#homo-cogitans');
+    } else if (location.hash === '#homo-cogitans') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
     chosen = index;
     phoneUtility = null;
     turnNavigationTo(index, !animateNavigation || isMatrixNavigation());
@@ -2626,11 +2686,14 @@ SOFTWARE.
 
   // The source-owned editor bridge uses the same renderer as the public site.
   window.addEventListener("hub:select", event => {
-    if (event.detail?.number === '0.8') {openMobileContacts(true); return;}
+    if (event.detail?.number === contactsNumber) {openMobileContacts(true); return;}
     const index = directions.findIndex(item => item.number === event.detail?.number);
     select(index, true, event.detail?.animate === true);
   });
   function revealFragment() {
+    if (location.hash === '#homo-cogitans' && hasHomoCogitans) {
+      select(directions.findIndex(item => item.number === '0.8'), true); return;
+    }
     if (location.hash === '#contacts' && isMatrixNavigation()) {
       openMobileContacts(true); requestAnimationFrame(() => window.GARDARI_HUB_LAYOUT.scrollPanelTop()); return;
     }
@@ -2646,7 +2709,7 @@ SOFTWARE.
   setupPhoneNavigation();
   setupPhoneTileOutlines();
   phoneMedia.addEventListener('change', () => {
-    const hadContacts = panel.dataset.direction === '0.8';
+    const hadContacts = panel.dataset.contactPage === 'true';
     phoneUtility = hadContacts && isMatrixNavigation() ? 'contacts' : null;
     if (hadContacts && !isMatrixNavigation()) {clearContactsFragment(); renderPanel(chosen);}
     if (isMatrixNavigation()) {
@@ -2843,7 +2906,7 @@ SOFTWARE.
     const paragraph = panel.querySelector('.panel-description-copy p:not(:empty),.mobile-contacts-body');
     if (paragraph) {
       let anchorTop = paragraph.getBoundingClientRect().top;
-      const heading = panel.dataset.direction === '0.8' ? paragraph.querySelector('h3') : null;
+      const heading = panel.dataset.contactPage === 'true' ? paragraph.querySelector('h3') : null;
       if (heading && contactInk) {
         const style = getComputedStyle(heading), size = parseFloat(style.fontSize) || 27;
         let text = heading.textContent.trim();

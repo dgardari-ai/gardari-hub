@@ -218,6 +218,37 @@ window.GARDARI_HUB_CONTENT = {
         "история",
         "современность"
       ]
+    },
+    {
+      "number": "0.8",
+      "short": "HOMO\nCOGITANS",
+      "title": "HOMO COGITANS",
+      "head": [
+        "HOMO",
+        "COGITANS"
+      ],
+      "category": "ТЕОРИЯ «МЫШЛЕНИЕ Х.0»",
+      "subtitle": "ГЕНЕЗИС · ФОРМЫ · ПРЕДЕЛЫ",
+      "text": "Мы думаем о мышлении в «единственном» числе, а живем во «множественном». За привычным словом скрываются разные способы понимать мир: что считать действительным, чему доверять, как объяснять происходящее и выбирать действие.",
+      "detail": "О мышлении часто говорят как о способности, которая остаётся прежней, пока меняются наши знания, языки, инструменты и весь окружающий мир. Но что, если меняются не только способы различать истину, сохранять опыт и действовать, но и сам характер «быть и мыслить» как таковой? HOMO COGITANS — интерактивный проект-исследование, посвящённый теории «Мышление х.0». Она рассматривает происхождение, устройство и развитие шести базовых форм мышления, которые продолжают действовать в современном человеке, обществе и культуре.",
+      "more": [
+        "",
+        "Здесь собраны тексты теории, рукопись книги, расшифровки форм мышления, а также практические инструменты, которые можно применять в своей жизни и деятельности. В том порядке и с той глубиной, которые вам сейчас нужны."
+      ],
+      "image": "./assets/hub-homo-cogitans.jpg",
+      "imageAlt": "Скульптура человека, смотрящего вверх — образ проекта HOMO COGITANS",
+      "imagePosition": "50% 0%",
+      "url": "https://dgardari-ai.github.io/homo-cogitans-x0-preview/",
+      "action": "ОТКРЫТЬ HOMO COGITANS",
+      "disciplines": [
+        "мышление",
+        "культура",
+        "генезис",
+        "новация",
+        "пределы",
+        "история",
+        "будущее"
+      ]
     }
   ],
   "contacts": [
@@ -869,26 +900,6 @@ window.GARDARI_HUB_CONTENT = {
         "text-align": "center"
       }
     },
-    "mobile-telegram-caption": {
-      "mobile": {
-        "font-family": "var(--label-font)",
-        "font-size": "3.4vw",
-        "font-weight": "500",
-        "letter-spacing": "-.03em",
-        "text-transform": "uppercase",
-        "line-height": "1.05",
-        "text-align": "center"
-      },
-      "tablet": {
-        "font-size": "10px",
-        "font-family": "var(--label-font)",
-        "font-weight": "500",
-        "letter-spacing": "-.03em",
-        "text-transform": "uppercase",
-        "line-height": "1.05",
-        "text-align": "center"
-      }
-    },
     "d01-nav-number": {
       "mobile": {
         "font-size": "10px",
@@ -1317,6 +1328,288 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": "1.008"
       }
     },
+    "d09-heading": {
+      "tablet": {
+        "font-size": "72px",
+        "font-weight": "700",
+        "line-height": ".86"
+      }
+    },
+    "d09-category": {
+      "tablet": {
+        "font-size": "10px",
+        "line-height": "1.3"
+      }
+    },
+    "d09-group-personal-title": {
+      "tablet": {
+        "font-size": "27px",
+        "line-height": "1.2"
+      }
+    },
+    "d09-personal-telegram-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-telegram-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-instagram-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-instagram-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-vk-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-vk-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-email-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-personal-email-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-group-bureau-title": {
+      "tablet": {
+        "font-size": "27px",
+        "line-height": "1.2"
+      }
+    },
+    "d09-bureau-website-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-bureau-website-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-bureau-email-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-bureau-email-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-group-gallery-title": {
+      "tablet": {
+        "font-size": "27px",
+        "line-height": "1.2"
+      }
+    },
+    "d09-gallery-website-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-gallery-website-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-gallery-email-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-gallery-email-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-gallery-address-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-gallery-address-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-group-club-title": {
+      "tablet": {
+        "font-size": "27px",
+        "line-height": "1.2"
+      }
+    },
+    "d09-club-website-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-club-website-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-club-email-label": {
+      "tablet": {
+        "font-size": "12px",
+        "line-height": "1.4"
+      }
+    },
+    "d09-club-email-text": {
+      "tablet": {
+        "font-size": "21px",
+        "line-height": "1.4"
+      }
+    },
+    "d08-subtitle": {
+      "all": {
+        "color": "#202124",
+        "font-size": "12px",
+        "margin-top": "13px"
+      },
+      "mobile": {
+        "font-size": "10px",
+        "margin-top": "0px"
+      }
+    },
+    "d08-text": {
+      "all": {
+        "font-size": "21px",
+        "line-height": "24px"
+      },
+      "mobile": {
+        "font-size": "14px",
+        "line-height": "1.344",
+        "color": "#fff",
+        "background-color": "var(--ink)"
+      },
+      "tablet": {
+        "font-size": "18px",
+        "line-height": "1.45",
+        "color": "#fff",
+        "background-color": "var(--ink)"
+      }
+    },
+    "d08-line-heading": {
+      "all": {
+        "height": "0.25px",
+        "background-color": "#202124"
+      }
+    },
+    "d08-nav": {
+      "all": {
+        "font-size": "12px"
+      },
+      "mobile": {
+        "font-size": "3.4vw",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
+      },
+      "tablet": {
+        "font-size": "10px",
+        "font-family": "var(--label-font)",
+        "font-weight": "500",
+        "letter-spacing": "-.03em",
+        "text-transform": "uppercase",
+        "line-height": "1.05",
+        "text-align": "center"
+      }
+    },
+    "d08-category": {
+      "all": {
+        "font-size": "8px"
+      },
+      "tablet": {
+        "font-size": "10px",
+        "line-height": "1.3",
+        "margin-top": "20px"
+      }
+    },
+    "d08-disciplines": {
+      "all": {
+        "line-height": "1.173"
+      },
+      "mobile": {
+        "line-height": "0.9384"
+      },
+      "tablet": {
+        "font-size": "23.4px",
+        "line-height": "1.04"
+      }
+    },
+    "d08-nav-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      },
+      "tablet": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      }
+    },
+    "d08-panel-number": {
+      "mobile": {
+        "font-size": "10px",
+        "letter-spacing": "-.09em"
+      },
+      "tablet": {
+        "font-size": "12px",
+        "width": "28px",
+        "height": "28px"
+      }
+    },
+    "d08-pill": {
+      "mobile": {
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      },
+      "tablet": {
+        "font-size": "16px",
+        "line-height": "1.25",
+        "font-weight": "700",
+        "letter-spacing": ".025em"
+      }
+    },
     "d08-heading": {
       "tablet": {
         "font-size": "72px",
@@ -1324,166 +1617,31 @@ window.GARDARI_HUB_CONTENT = {
         "line-height": ".86"
       }
     },
-    "d08-category": {
+    "d08-detail": {
       "tablet": {
-        "font-size": "10px",
-        "line-height": "1.3"
+        "font-size": "18px",
+        "line-height": "1.0875"
+      },
+      "mobile": {
+        "line-height": "1.008"
       }
     },
-    "d08-group-personal-title": {
+    "d08-more0": {
       "tablet": {
-        "font-size": "27px",
-        "line-height": "1.2"
+        "font-size": "18px",
+        "line-height": "1.0875"
+      },
+      "mobile": {
+        "line-height": "1.008"
       }
     },
-    "d08-personal-telegram-label": {
+    "d08-more1": {
       "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-telegram-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-instagram-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-instagram-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-vk-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-vk-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-email-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-personal-email-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-group-bureau-title": {
-      "tablet": {
-        "font-size": "27px",
-        "line-height": "1.2"
-      }
-    },
-    "d08-bureau-website-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-bureau-website-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-bureau-email-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-bureau-email-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-group-gallery-title": {
-      "tablet": {
-        "font-size": "27px",
-        "line-height": "1.2"
-      }
-    },
-    "d08-gallery-website-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-website-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-email-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-email-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-address-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-gallery-address-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-group-club-title": {
-      "tablet": {
-        "font-size": "27px",
-        "line-height": "1.2"
-      }
-    },
-    "d08-club-website-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-club-website-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-club-email-label": {
-      "tablet": {
-        "font-size": "12px",
-        "line-height": "1.4"
-      }
-    },
-    "d08-club-email-text": {
-      "tablet": {
-        "font-size": "21px",
-        "line-height": "1.4"
+        "font-size": "18px",
+        "line-height": "1.0875"
+      },
+      "mobile": {
+        "line-height": "1.008"
       }
     }
   },
@@ -1496,7 +1654,7 @@ window.GARDARI_HUB_CONTENT = {
     "introNext": true
   },
   "mobileContacts": {
-    "number": "0.8",
+    "number": "0.9",
     "title": "Контакты для связи",
     "head": [
       "Контакты",
