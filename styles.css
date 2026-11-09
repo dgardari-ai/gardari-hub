@@ -101,7 +101,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #21669b; outline-offs
 .eyebrow { margin: 0 0 10px; font: 500 10px/1.3 var(--mono); text-transform: uppercase; }
 .close-description { position: relative; display: grid; place-items: center; flex: none; width: 19.6px; height: 19.6px; padding: 0; border: 1px solid #000; border-radius: 50%; background: #000; color: #fff; line-height: 1; }
 .close-description::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; }
-.close-description svg { display: block; width: 7.1111111px; height: 7.1111111px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.close-description svg { display: block; width: 7.1111111px; height: 7.1111111px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; }
 .close-description:hover { background: #202124; }
 .description-body { padding-bottom: 30px; font-size: 18px; letter-spacing: -.015em; }
 .author-synthesis { display: grid; grid-template-columns: calc(50% - var(--section-block-gap)) minmax(0,1fr); column-gap: var(--section-block-gap); row-gap: var(--section-block-gap); align-items: start; }

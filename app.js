@@ -3570,6 +3570,7 @@ SOFTWARE.
   const phone = matchMedia('(max-width: 680px)');
   const panels = [...document.querySelectorAll('.accordion-panel')];
   const links = panels.map(panel => panel.querySelector('.panel-activate'));
+  links.forEach((link,index)=>link.setAttribute('aria-label',panels[index].querySelector('.panel-title-vertical').textContent));
   const tabs = [...document.querySelectorAll('.section-tab')];
   const descriptions = [...document.querySelectorAll('.description')];
   const home = document.querySelector('#home');
