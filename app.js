@@ -3201,7 +3201,7 @@ SOFTWARE.
       setPixels(scope,'--section-video-size',diameter);
       setPixels(scope,'--section-video-top',stripes.top+stripeHeight/2+halo-field.getBoundingClientRect().top);
       setPixels(scope,'--section-video-halo',halo);
-      setPixels(scope,'--section-video-right',halo+stripeHeight);
+      setPixels(scope,'--section-video-right',halo+stripeHeight/2);
       setPixels(lead,'margin-top',0);
       let phrase = textInk(lead);
       if (compact) {
