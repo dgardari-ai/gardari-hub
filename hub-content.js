@@ -460,5 +460,28 @@ window.GARDARI_HUB_CONTENT = {
     "subtitle": "САЙТЫ · ПОЧТА · ССЫЛКИ",
     "action": "НАПИСАТЬ ПИСЬМО НА ПОЧТУ",
     "url": "mailto:hub@gardari.art"
-  }
+  },
+  "quoteCards": [
+    {
+      "id": "beliefs",
+      "title": "Убеждения",
+      "image": "./assets/quote-beliefs.png",
+      "text": "Убеждения - это вопрос выбора. Либо ты этот выбор делаешь сам, либо за тебя его делает «другой».",
+      "sourceLabel": "Истории и притчи"
+    },
+    {
+      "id": "being",
+      "title": "Бытие",
+      "image": "./assets/quote-being.png",
+      "text": "Бытие придумало людей, потому что захотело жить...",
+      "sourceLabel": "Истории и притчи"
+    },
+    {
+      "id": "maturity",
+      "title": "Молодость и зрелость",
+      "image": "./assets/quote-maturity.png",
+      "text": "Молодость держится энергией — зрелость держится формой. Не серьезнее, а точнее. Зрелость — это ясность без жестокости.",
+      "sourceLabel": "Дневники и заметки"
+    }
+  ]
 };

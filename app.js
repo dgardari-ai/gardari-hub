@@ -3081,7 +3081,7 @@ SOFTWARE.
   function balanceNotes(notes) {
     const blocks=[...notes.querySelectorAll('.section-note')];
     if(blocks.length!==2)return;
-    const compact=matchMedia('(max-width:680px)').matches;
+    const compact=matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches;
     const signature=notes.offsetWidth+'|'+getComputedStyle(blocks[0].querySelector('p')).fontSize+'|'+compact;
     if(notes.dataset.balanceSignature===signature)return;
     if(!noteSources.has(notes)){
@@ -3184,7 +3184,7 @@ SOFTWARE.
     const notes = scope.querySelector('.section-notes');
     if (!synthesis || !notes) return;
     const opening = scope.querySelector('[data-family-bind$=":lower0"]');
-    if (matchMedia('(max-width:680px)').matches) {
+    if (matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches) {
       if (opening.parentElement === notes) {
         balanceNotes(notes);
         synthesis.before(opening);
@@ -3204,11 +3204,11 @@ SOFTWARE.
     const heading = scope.querySelector('.section-heading > span:last-child');
     const synthesis = scope.querySelector('.author-synthesis');
     if (synthesis) {
-      if (!matchMedia('(max-width:680px)').matches) balanceNotes(scope.querySelector('.section-notes'));
+      if (!matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches) balanceNotes(scope.querySelector('.section-notes'));
       const list = synthesis.querySelector('.author-disciplines');
       const lead = synthesis.querySelector('.panel-description-lead');
       const video = synthesis.querySelector('.section-video-preview');
-      const compact = matchMedia('(max-width:680px)').matches;
+      const compact = matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches;
       let stripes = stripeBounds(list);
       const field=synthesis.querySelector('.author-word-field');
       const fillStyle=getComputedStyle(list.querySelector('.author-discipline-fill'));
@@ -3303,7 +3303,7 @@ SOFTWARE.
       if(required<=width+.5)break;
       list.style.fontSize=(size*width/required).toFixed(4)+'px';
     }
-    if (matchMedia('(max-width:680px)').matches) {
+    if (matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches) {
       const baseline = getComputedStyle(list);
       const step = baseline.lineHeight, size = parseFloat(baseline.fontSize);
       list.style.lineHeight = step;
@@ -3500,7 +3500,7 @@ SOFTWARE.
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const resize = () => {
     const field = document.querySelector('.page-shell').getBoundingClientRect().width;
-    const desired = matchMedia('(max-width:680px)').matches ? field : field * 2 / 3;
+    const desired = matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)').matches ? field : field * 2 / 3;
     dialog.style.setProperty('--section-player-size', Math.max(100,Math.min(desired,innerWidth-32,innerHeight-100))+'px');
   };
   const transform = () => {
@@ -3609,7 +3609,7 @@ SOFTWARE.
   'use strict';
   const root = document.documentElement;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const phone = matchMedia('(max-width: 680px)');
+  const phone = matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)');
   const panels = [...document.querySelectorAll('.accordion-panel')];
   const links = panels.map(panel => panel.querySelector('.panel-activate'));
   links.forEach((link,index)=>link.setAttribute('aria-label',panels[index].querySelector('.panel-title-vertical').textContent));
@@ -3901,7 +3901,7 @@ SOFTWARE.
   function familyPage(){return selected!==null?panels[selected].querySelector('.panel-activate').getAttribute('aria-controls').replace('section-','0.').replace('0.0','0.'):!home.hidden?'home':document.querySelector('.utility-page:not([hidden])')?.id==='contacts'?'0.9':'quotes';}
   function familyOpen(value){if(!value)return;const page=value==='d09'||value==='0.9'?'contacts':value;if((page==='contacts'&&familyPage()==='0.9')||page===familyPage())return;if(page==='home')showHome();else if(page==='contacts'||page==='quotes')showUtility(page);else{const number=page.startsWith('d')?'0.'+Number(page.slice(1)):page;const index=links.findIndex(link=>document.getElementById(link.getAttribute('aria-controls')).dataset.direction===number);if(index>=0)showDirection(index);}dispatchEvent(new CustomEvent('hub-family:change'));}
   window.HubFamily={open:familyOpen,page:familyPage};
-  function familyLayout(){const mode=innerWidth<=680?'phone':innerWidth<=1130?(innerWidth<=899?'tablet-portrait':'tablet-landscape'):'desktop';root.dataset.hubLayout=mode;dispatchEvent(new CustomEvent('hub:layout-change'));}
+  function familyLayout(){const mode=innerWidth<=680?'phone':innerWidth<=1024&&innerHeight>=innerWidth?'tablet-portrait':innerWidth<=1366?'tablet-landscape':'desktop';root.dataset.hubLayout=mode;dispatchEvent(new CustomEvent('hub:layout-change'));}
   window.GARDARI_HUB_LAYOUT={isCompact:()=>innerWidth<=1130,isSidebar:()=>false,setPreviewDevice:familyLayout};addEventListener('resize',familyLayout,{passive:true});familyLayout();
 
   entrance().catch(error => console.error('Hub experiment entrance:', error));
@@ -3913,7 +3913,7 @@ SOFTWARE.
 ;
 (() => {
   'use strict';
-  const phone=matchMedia('(max-width:680px)');
+  const phone=matchMedia('(max-width:680px), (min-width:681px) and (max-width:1024px) and (orientation:portrait)');
   const root=document.documentElement;
   const nativeFamilyOpen=window.HubFamily.open;
   window.HubFamily.open=value=>nativeFamilyOpen(phone.matches&&value==='home'?'0.1':value);
@@ -4034,4 +4034,138 @@ SOFTWARE.
     syncSelection();scaleSideFaces();alignNumbers();queueScrollEnd();
   }
   addEventListener('hub-family:change',()=>{syncSelection();alignContacts();queueScrollEnd();});phone.addEventListener('change',syncMode);addEventListener('resize',()=>requestAnimationFrame(syncMode),{passive:true});syncMode();
+})();
+
+;(() => {
+ const portrait=matchMedia('(min-width:681px) and (max-width:1024px) and (orientation:portrait)');
+ function revealContacts(){
+  if(!portrait.matches||window.HubFamily.page()!=='0.9')return;
+  requestAnimationFrame(()=>{
+   if(!portrait.matches||window.HubFamily.page()!=='0.9')return;
+   window.dispatchEvent(new Event('resize'));
+   window.scrollTo({top:0,behavior:'instant'});
+  });
+ }
+ addEventListener('hub-family:change',revealContacts);
+ portrait.addEventListener('change',revealContacts);
+})();
+
+;
+(() => {
+  const menu = document.getElementById('quote-share-popover');
+  if (!menu) return;
+  const download = menu.querySelector('.quote-share-download');
+  const telegram = menu.querySelector('.quote-share-telegram');
+  const phone = matchMedia('(max-width:680px)');
+  const railToggle = document.querySelector('.phone-side-toggle');
+  let automaticRail = false, changingRail = false;
+  railToggle?.addEventListener('click', () => { if (!changingRail) automaticRail = false; });
+  function syncPhoneWidth() {
+    if (!railToggle) return;
+    const quotes = window.HubFamily?.page() === 'quotes';
+    const collapsed = document.documentElement.classList.contains('is-rail-collapsed');
+    if (phone.matches && quotes && !collapsed) {
+      changingRail = true; railToggle.click(); changingRail = false;
+      automaticRail = true;
+    } else if (automaticRail && (!phone.matches || !quotes)) {
+      if (collapsed) { changingRail = true; railToggle.click(); changingRail = false; }
+      automaticRail = false;
+    }
+  }
+  phone.addEventListener('change', syncPhoneWidth);
+  addEventListener('hub-family:change', syncPhoneWidth);
+  syncPhoneWidth();
+  let selected, sequence = 0, objectURL;
+  const isOpen = () => menu.classList.contains('is-open');
+
+  function close(returnFocus = false) {
+    if (!isOpen()) return;
+    menu.classList.remove('is-open');
+    selected?.card.classList.remove('is-sharing');
+    selected?.trigger.setAttribute('aria-expanded', 'false');
+    sequence += 1;
+    if (returnFocus) selected?.trigger.focus({preventScroll: true});
+  }
+
+  function place(card, event) {
+    const box = card.getBoundingClientRect();
+    menu.style.width = `${Math.min(244, box.width - 32)}px`;
+    const width = menu.offsetWidth, height = menu.offsetHeight;
+    const x = box.left + (box.width - width) / 2;
+    const y = (Math.max(8, box.top) + Math.min(innerHeight - 8, box.bottom) - height) / 2;
+    menu.style.left = `${Math.max(8, Math.min(x, innerWidth - width - 8))}px`;
+    menu.style.top = `${Math.max(8, Math.min(y, innerHeight - height - 8))}px`;
+  }
+
+  async function prepare(card, token, keyboard) {
+    menu.dataset.fileReady = 'false';
+    download.removeAttribute('href');
+    download.setAttribute('aria-disabled', 'true');
+    try {
+      const image = card.querySelector('img');
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d');
+      const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) * canvas.width / card.getBoundingClientRect().width;
+      context.beginPath();
+      context.roundRect(0, 0, canvas.width, canvas.height, radius);
+      context.clip();
+      context.drawImage(image, 0, 0);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob || token !== sequence) return;
+      if (objectURL) URL.revokeObjectURL(objectURL);
+      objectURL = URL.createObjectURL(blob);
+      download.href = objectURL;
+      download.download = `Гардари — ${card.dataset.shareTitle}.png`;
+      download.removeAttribute('aria-disabled');
+      menu.dataset.fileReady = 'true';
+      if (keyboard && document.activeElement === selected.trigger) download.focus({preventScroll: true});
+    } catch (error) {
+      if (token === sequence) download.title = 'Нажмите ещё раз, чтобы подготовить изображение';
+    }
+  }
+
+  document.querySelectorAll('.quote-share-trigger').forEach(trigger => {
+    trigger.addEventListener('click', event => {
+      const card = trigger.closest('.accepted-quote-card');
+      if (isOpen() && selected?.card === card) { close(); return; }
+      selected?.trigger.setAttribute('aria-expanded', 'false');
+      selected?.card.classList.remove('is-sharing');
+      selected = {card, trigger};
+      card.classList.add('is-sharing');
+      const text = card.querySelector('blockquote p').textContent;
+      const source = card.querySelector('cite').textContent;
+      telegram.href = `https://t.me/share/url?url=${encodeURIComponent('https://dgardari-ai.github.io/gardari-hub/')}&text=${encodeURIComponent(text + '\n\n' + source)}`;
+      menu.dataset.card = card.dataset.acceptedQuote;
+      menu.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      place(card, event);
+      prepare(card, ++sequence, event.detail === 0);
+    });
+  });
+  download.addEventListener('click', event => {
+    if (download.getAttribute('aria-disabled') === 'true') {
+      event.preventDefault();
+      prepare(selected.card, ++sequence, false);
+    }
+  });
+  menu.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); close(true); }
+    if (event.key === 'Tab') close(true);
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const links = [...menu.querySelectorAll('a')].filter(a => a.getAttribute('aria-disabled') !== 'true');
+      const current = links.indexOf(document.activeElement);
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (current + 1) % links.length;
+      links[index]?.focus();
+    }
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && isOpen()) close(true); });
+  document.addEventListener('click', event => {
+    if (isOpen() && !menu.contains(event.target) && !selected?.trigger.contains(event.target)) close();
+  });
+  addEventListener('scroll', () => close(), {passive: true});
+  addEventListener('resize', () => close(), {passive: true});
 })();
