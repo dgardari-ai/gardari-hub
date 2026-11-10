@@ -42,7 +42,7 @@ window.GARDARI_HUB_CONTENT = {
       "menuHome": "Главная",
       "menuContacts": "Контакты",
       "menuQuotes": "Цитаты",
-      "quotesHeading": "Цитаты"
+      "quotesHeading": "ЦИТАТЫ / ВЫСКАЗЫВАНИЯ · АФОРИЗМЫ · МЕТАФОРЫ"
     },
     {
       "number": "0.2",
@@ -113,9 +113,9 @@ window.GARDARI_HUB_CONTENT = {
         "панно"
       ],
       "familyLabel": "Арт галерея",
-      "familyCaption": "Арт-галерея",
+      "familyCaption": "Арт галерея",
       "videoImage": "./assets/section-video/gallery.jpg",
-      "videoAlt": "Пространство Арт-галереи Гардари",
+      "videoAlt": "Пространство Арт галереи Гардари",
       "videoX": "50",
       "videoY": "50",
       "videoSrc": ""
@@ -411,7 +411,7 @@ window.GARDARI_HUB_CONTENT = {
       },
       {
         "id": "gallery",
-        "title": "Арт-галерея",
+        "title": "Арт галерея",
         "items": [
           {
             "id": "website",
@@ -430,7 +430,7 @@ window.GARDARI_HUB_CONTENT = {
           {
             "id": "address",
             "label": "Адрес галереи",
-            "text": "Екатеринбург, ул. Азина, 22/2, офис 8",
+            "text": "Екатеринбург, ул. Азина, 22/2, офис 8",
             "url": "https://yandex.ru/maps/org/artel_gardari/245282886545/",
             "icon": "location"
           }

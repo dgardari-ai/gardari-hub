@@ -3211,7 +3211,7 @@ SOFTWARE.
       }
       const title = textInk(heading);
       const oldPadding = parseFloat(getComputedStyle(header).paddingBottom);
-      setPixels(header,'padding-bottom',oldPadding+gap-(stripeBounds(list).top-title.bottom));
+      if (!document.documentElement.classList.contains('menu-section-headings')) setPixels(header,'padding-bottom',oldPadding+gap-(stripeBounds(list).top-title.bottom));
       stripes = stripeBounds(list); phrase = textInk(lead);
       const rowBottom = Math.max(stripes.bottom,phrase.bottom,video.getBoundingClientRect().bottom);
       const notes = scope.querySelector('.section-notes');
@@ -3240,7 +3240,7 @@ SOFTWARE.
       });
       const title = textInk(heading);
       const first = groupInk(groups[0]);
-      setPixels(header,'padding-bottom',parseFloat(getComputedStyle(header).paddingBottom)+gap-(first.top-title.bottom));
+      if (!document.documentElement.classList.contains('menu-section-headings')) setPixels(header,'padding-bottom',parseFloat(getComputedStyle(header).paddingBottom)+gap-(first.top-title.bottom));
     }
   }
   function alignAuthorComposition(scope) {
@@ -3579,6 +3579,43 @@ SOFTWARE.
   let entranceAnimations = [];
   let disposeSectionMotion = () => {};
   let activeHeading = null;
+  let activeSection = null;
+  const brand = document.querySelector('.brand-pill');
+  const menuHeading = document.createElement('span');
+  menuHeading.className = 'brand-context';
+  menuHeading.id = 'menu-section-title';
+  menuHeading.setAttribute('role', 'heading');
+  menuHeading.setAttribute('aria-level', '2');
+  menuHeading.hidden = true;
+  const menuCopy = document.createElement('span');
+  const menuTail = document.createElement('span');
+  menuTail.className = 'brand-context-tail';
+  const menuLastWord = document.createElement('span');
+  const menuMark = document.createElement('span');
+  menuMark.className = 'brand-context-mark';
+  menuMark.setAttribute('aria-hidden', 'true');
+  menuTail.append(menuLastWord, menuMark);
+  menuHeading.append(menuCopy, menuTail);
+  brand.append(menuHeading);
+  root.classList.add('menu-section-headings');
+
+  function setMenuHeading(section) {
+    let title = section.querySelector('.section-heading > span:last-child').textContent.trim();
+    if (section.dataset.direction) {
+      const panel = panels.find(item => item.dataset.familyCard === section.dataset.direction);
+      title = section.dataset.direction + ' ' + panel.querySelector('.panel-caption strong').textContent.trim()
+        + ' / ' + panel.querySelector('.panel-caption > span').textContent.trim();
+    }
+    const lastSpace = title.lastIndexOf(' ');
+    menuCopy.textContent = title.slice(0, lastSpace + 1);
+    menuLastWord.textContent = title.slice(lastSpace + 1);
+    menuHeading.hidden = false;
+    brand.classList.add('has-context');
+    activeSection = section;
+    activeHeading = menuHeading;
+    section.setAttribute('aria-labelledby', menuHeading.id);
+  }
+
   const headingInk = document.createElement('canvas').getContext('2d');
 
   function alignContactMarks(section) {
@@ -3614,36 +3651,24 @@ SOFTWARE.
   }
 
   function alignHeadingMark() {
-    const heading = activeHeading;
-    if (!heading || !heading.offsetWidth) return;
-    const square = heading.querySelector('.section-heading-square');
-    const copy = square?.nextElementSibling;
-    if (!copy) return;
-    const style = getComputedStyle(heading);
+    if (!activeHeading || !activeSection || !activeHeading.offsetWidth) return;
+    const availableHeight = brand.clientHeight - 8;
+    let size = 11.264;
+    activeHeading.style.fontSize = size + 'px';
+    while (activeHeading.scrollHeight > availableHeight && size > 5) {
+      size = Math.max(5, size - .2);
+      activeHeading.style.fontSize = size + 'px';
+    }
+    const style = getComputedStyle(activeHeading);
     headingInk.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
-    // Use the common capital plane, independent of accents and descenders in a title.
     const bounds = headingInk.measureText('Н');
-    const ascent = bounds.actualBoundingBoxAscent || parseFloat(style.fontSize) * .75;
+    const ascent = bounds.actualBoundingBoxAscent || size * .75;
     const descent = bounds.actualBoundingBoxDescent || 0;
-    const size = ((ascent + descent) * 1.1).toFixed(4) + 'px';
-    if (heading.style.getPropertyValue('--heading-square-size') !== size) {
-      heading.style.setProperty('--heading-square-size', size);
-    }
-    const baseline = document.createElement('span');
-    baseline.setAttribute('aria-hidden', 'true');
-    baseline.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;line-height:0';
-    copy.prepend(baseline);
-    const inkTop = baseline.getBoundingClientRect().top - heading.getBoundingClientRect().top - ascent;
-    baseline.remove();
-    const top = (inkTop - (ascent + descent) * .05).toFixed(4) + 'px';
-    if (heading.style.getPropertyValue('--heading-square-top') !== top) {
-      heading.style.setProperty('--heading-square-top', top);
-    }
-    heading.dataset.inkTop = inkTop.toFixed(4);
-    heading.dataset.inkHeight = (ascent + descent).toFixed(4);
-    const section = heading.closest('.description');
-    if (section.id === 'contacts') alignContactMarks(section);
-    window.HubSectionMotion.alignLayout(section);
+    const cap = ascent + descent;
+    activeHeading.style.setProperty('--context-mark-size', (cap * 1.1).toFixed(4) + 'px');
+    activeHeading.style.setProperty('--context-mark-shift', (descent + cap * .05).toFixed(4) + 'px');
+    if (activeSection.id === 'contacts') alignContactMarks(activeSection);
+    window.HubSectionMotion.alignLayout(activeSection);
   }
 
   const headingObserver = typeof ResizeObserver === 'function'
@@ -3677,7 +3702,11 @@ SOFTWARE.
   }
   function hideDescriptions() {
     headingObserver?.disconnect();
+    if (activeSection) activeSection.setAttribute('aria-labelledby', activeSection.id + '-title');
     activeHeading = null;
+    activeSection = null;
+    menuHeading.hidden = true;
+    brand.classList.remove('has-context');
     disposeSectionMotion();
     disposeSectionMotion = () => {};
     descriptions.forEach(section => { section.hidden = true; });
@@ -3686,9 +3715,9 @@ SOFTWARE.
   }
   function reveal(section, moveFocus = true) {
     section.hidden = false;
-    activeHeading = section.querySelector('.section-heading');
+    setMenuHeading(section);
     alignHeadingMark();
-    if (activeHeading) headingObserver?.observe(activeHeading);
+    headingObserver?.observe(brand);
     if (!reduced.matches) section.animate([{opacity: 0, transform: 'translateY(12px)'}, {opacity: 1, transform: 'translateY(0)'}], {duration: 380, easing: 'cubic-bezier(.16,1,.3,1)'});
     if (moveFocus) section.focus({preventScroll: true});
     if (section.querySelector('.author-disciplines')) {
@@ -3726,12 +3755,17 @@ SOFTWARE.
     reveal(document.getElementById(page));
     window.scrollTo({top: 0, behavior: reduced.matches ? 'instant' : 'smooth'});
   }
+  function toggleDirection(index) {
+    if (selected === index) hideDescriptions();
+    else showDirection(index);
+    dispatchEvent(new CustomEvent('hub-family:change'));
+  }
   panels.forEach((panel, index) => {
     panel.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') expand(index); });
     links[index].addEventListener('focus', () => expand(index));
     links[index].addEventListener('click', event => {
       event.preventDefault();
-      showDirection(index);
+      toggleDirection(index);
     });
     links[index].addEventListener('keydown', event => {
       let next = null;
@@ -3739,7 +3773,7 @@ SOFTWARE.
       if (event.key === 'ArrowLeft') next = (open - 1 + panels.length) % panels.length;
       if (event.key === 'Home') next = 0;
       if (event.key === 'End') next = panels.length - 1;
-      if (event.key === ' ') { event.preventDefault(); showDirection(index); return; }
+      if (event.key === ' ') { event.preventDefault(); toggleDirection(index); return; }
       if (next === null) return;
       event.preventDefault();
       expand(next);
@@ -3769,6 +3803,11 @@ SOFTWARE.
       const index = selected; hideDescriptions(); links[index].focus({preventScroll: true});
     }
   });
+
+  const titleObserver = new MutationObserver(() => {
+    if (activeSection) { setMenuHeading(activeSection); alignHeadingMark(); }
+  });
+  panels.forEach(panel => titleObserver.observe(panel.querySelector('.panel-caption'), {childList: true, characterData: true, subtree: true}));
 
   async function entrance() {
     const finish = () => {

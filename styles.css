@@ -204,3 +204,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid #21669b; outline-offs
 .author-disciplines.word-fold-ready .author-discipline-fill{position:relative;transform-origin:50% 0%;backface-visibility:hidden}
 .author-disciplines.word-fold-ready .author-discipline-fill::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.22) 42%,rgba(255,255,255,.26));opacity:var(--word-fold-crease,0)}
 @media(prefers-reduced-motion:reduce){.author-disciplines .word-fold-piece,.author-disciplines.word-fold-ready .author-discipline-fill{transform:none!important;opacity:1!important}.author-disciplines .word-fold-piece::after,.author-disciplines.word-fold-ready .author-discipline-fill::after{opacity:0!important}}
+
+/* The active section title occupies the long menu pill. */
+.brand-context { flex: 1 1 0; min-width: 0; color: var(--muted); font: 500 11.264px/1.25 var(--mono); letter-spacing: -.4px; text-transform: uppercase; overflow-wrap: anywhere; }
+.brand-context-tail { white-space: nowrap; }
+.brand-context-mark { display: inline-block; width: var(--context-mark-size,.8em); height: var(--context-mark-size,.8em); margin-left: .8em; vertical-align: baseline; transform: translateY(var(--context-mark-shift,0)); aspect-ratio: 1; background: var(--yellow); animation: platform-mark-blink 1.4s step-end infinite; }
+.brand-pill.has-context .brand-name { display: none; }
+.menu-section-headings .description { position: relative; }
+.menu-section-headings .description-heading { position: absolute; top: 0; left: 0; width: 100%; height: 0; padding: 0; visibility: hidden; pointer-events: none; }
+.menu-section-headings .close-description { display: none; }
+@media (max-width: 680px) {
+  .brand-pill.has-context { gap: 7px; padding-right: 9px; }
+}
