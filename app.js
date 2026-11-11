@@ -1105,6 +1105,8 @@
   const telegram = menu.querySelector('.quote-share-telegram');
   const phone = matchMedia('(max-width:680px)');
   const railToggle = document.querySelector('.phone-side-toggle');
+  const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   let automaticRail = false, changingRail = false;
   railToggle?.addEventListener('click', () => { if (!changingRail) automaticRail = false; });
   function syncPhoneWidth() {
@@ -1122,8 +1124,18 @@
   phone.addEventListener('change', syncPhoneWidth);
   addEventListener('hub-family:change', syncPhoneWidth);
   syncPhoneWidth();
-  let selected, sequence = 0, objectURL;
+
+  // The old link-only Telegram endpoint cannot attach an image.
+  telegram.removeAttribute('target');
+  telegram.removeAttribute('rel');
+  let selected, sequence = 0, objectURL, prepared, preparing = false, sharing = false;
   const isOpen = () => menu.classList.contains('is-open');
+  const canCopyImage = () => typeof ClipboardItem === 'function' && typeof navigator.clipboard?.write === 'function';
+  const label = (control, text, title = text) => {
+    control.textContent = text;
+    control.title = title;
+    control.setAttribute('aria-label', title);
+  };
 
   function close(returnFocus = false) {
     if (!isOpen()) return;
@@ -1131,10 +1143,12 @@
     selected?.card.classList.remove('is-sharing');
     selected?.trigger.setAttribute('aria-expanded', 'false');
     sequence += 1;
+    prepared = undefined;
+    preparing = false;
     if (returnFocus) selected?.trigger.focus({preventScroll: true});
   }
 
-  function place(card, event) {
+  function place(card) {
     const box = card.getBoundingClientRect();
     menu.style.width = `${Math.min(244, box.width - 32)}px`;
     const width = menu.offsetWidth, height = menu.offsetHeight;
@@ -1144,10 +1158,51 @@
     menu.style.top = `${Math.max(8, Math.min(y, innerHeight - height - 8))}px`;
   }
 
+  function actions() {
+    const {file, nativeShare} = prepared;
+    download.href = objectURL;
+    download.download = file.name;
+    label(download, appleMobile ? (nativeShare ? 'Сохранить в Фото' : 'Скачать в Файлы') : 'Скачать',
+      appleMobile ? (nativeShare ? 'В меню выберите «Сохранить изображение»' : 'Скачать PNG в «Файлы → Загрузки»') : 'Скачать карточку');
+    if (nativeShare) {
+      telegram.removeAttribute('href');
+      telegram.removeAttribute('download');
+      menu.dataset.delivery = 'file-share';
+      label(telegram, 'В Telegram', 'В меню отправки выберите Telegram');
+    } else if (canCopyImage()) {
+      telegram.removeAttribute('href');
+      telegram.removeAttribute('download');
+      menu.dataset.delivery = 'clipboard';
+      label(telegram, 'Скопировать картинку', 'Скопировать картинку, затем вставить её в Telegram');
+    } else {
+      pngForTelegram();
+    }
+    for (const control of [download, telegram]) {
+      control.removeAttribute('aria-disabled');
+      control.tabIndex = 0;
+    }
+    menu.dataset.fileReady = 'true';
+    place(prepared.card);
+  }
+
+  function pngForTelegram() {
+    telegram.href = objectURL;
+    telegram.download = prepared.file.name;
+    menu.dataset.delivery = 'png-download';
+    label(telegram, 'PNG для Telegram', 'Скачайте PNG и прикрепите картинку в Telegram');
+  }
+
   async function prepare(card, token, keyboard) {
+    prepared = undefined;
+    preparing = true;
     menu.dataset.fileReady = 'false';
-    download.removeAttribute('href');
-    download.setAttribute('aria-disabled', 'true');
+    for (const control of [download, telegram]) {
+      control.removeAttribute('href');
+      control.setAttribute('aria-disabled', 'true');
+      control.tabIndex = -1;
+    }
+    label(download, 'Готовлю картинку…');
+    label(telegram, 'В Telegram');
     try {
       const image = card.querySelector('img');
       await image.decode();
@@ -1161,17 +1216,49 @@
       context.clip();
       context.drawImage(image, 0, 0);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (!blob || token !== sequence) return;
+      if (token !== sequence) return;
+      if (!blob) throw new Error('PNG preparation failed');
+      const file = new File([blob], `Гардари — ${card.dataset.shareTitle}.png`, {type: 'image/png'});
+      let nativeShare = false;
+      try { nativeShare = typeof navigator.share === 'function' && navigator.canShare?.({files: [file]}) === true; } catch {}
       if (objectURL) URL.revokeObjectURL(objectURL);
       objectURL = URL.createObjectURL(blob);
-      download.href = objectURL;
-      download.download = `Гардари — ${card.dataset.shareTitle}.png`;
-      download.removeAttribute('aria-disabled');
-      menu.dataset.fileReady = 'true';
+      prepared = {card, file, nativeShare};
+      preparing = false;
+      actions();
       if (keyboard && document.activeElement === selected.trigger) download.focus({preventScroll: true});
-    } catch (error) {
-      if (token === sequence) download.title = 'Нажмите ещё раз, чтобы подготовить изображение';
+    } catch {
+      if (token !== sequence) return;
+      preparing = false;
+      label(download, 'Повторить подготовку');
+      download.removeAttribute('aria-disabled');
+      download.tabIndex = 0;
+      label(telegram, 'Картинка недоступна');
     }
+  }
+
+  async function shareImage() {
+    if (sharing) return;
+    const current = prepared;
+    sharing = true;
+    try {
+      // Call directly during this click: no decoding, canvas or await beforehand.
+      // Files only: Telegram receives the PNG, without a webpage URL or text.
+      await navigator.share({files: [current.file]});
+      if (prepared === current) close();
+    } catch (error) {
+      if (error?.name !== 'AbortError' && prepared === current) {
+        current.nativeShare = false;
+        actions();
+      }
+    } finally { sharing = false; }
+  }
+
+  function ready(event) {
+    if (prepared) return true;
+    event.preventDefault();
+    if (!preparing && selected) prepare(selected.card, ++sequence, false);
+    return false;
   }
 
   document.querySelectorAll('.quote-share-trigger').forEach(trigger => {
@@ -1182,30 +1269,43 @@
       selected?.card.classList.remove('is-sharing');
       selected = {card, trigger};
       card.classList.add('is-sharing');
-      const text = card.querySelector('blockquote p').textContent;
-      const source = card.querySelector('cite').textContent;
-      telegram.href = `https://t.me/share/url?url=${encodeURIComponent('https://dgardari-ai.github.io/gardari-hub/')}&text=${encodeURIComponent(text + '\n\n' + source)}`;
       menu.dataset.card = card.dataset.acceptedQuote;
       menu.classList.add('is-open');
       trigger.setAttribute('aria-expanded', 'true');
-      place(card, event);
+      place(card);
       prepare(card, ++sequence, event.detail === 0);
     });
   });
   download.addEventListener('click', event => {
-    if (download.getAttribute('aria-disabled') === 'true') {
-      event.preventDefault();
-      prepare(selected.card, ++sequence, false);
+    if (!ready(event)) return;
+    if (appleMobile && prepared.nativeShare) { event.preventDefault(); shareImage(); }
+  });
+  telegram.addEventListener('click', async event => {
+    if (!ready(event)) return;
+    if (prepared.nativeShare) { event.preventDefault(); shareImage(); return; }
+    if (menu.dataset.delivery !== 'clipboard') return;
+    event.preventDefault();
+    const current = prepared;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({'image/png': current.file})]);
+      if (prepared === current) label(telegram, 'Картинка скопирована', 'Вставьте картинку в Telegram');
+    } catch {
+      if (prepared === current) pngForTelegram();
     }
   });
   menu.addEventListener('keydown', event => {
+    if (['Enter', ' '].includes(event.key) && event.target.matches('a') && !event.target.hasAttribute('href')) {
+      event.preventDefault();
+      event.target.click();
+    }
     if (event.key === 'Escape') { event.preventDefault(); close(true); }
     if (event.key === 'Tab') close(true);
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
       event.preventDefault();
       const links = [...menu.querySelectorAll('a')].filter(a => a.getAttribute('aria-disabled') !== 'true');
       const current = links.indexOf(document.activeElement);
-      const index = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (current + 1) % links.length;
+      const delta = ['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 1;
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (current + delta + links.length) % links.length;
       links[index]?.focus();
     }
   });
@@ -1213,7 +1313,7 @@
   document.addEventListener('click', event => {
     if (isOpen() && !menu.contains(event.target) && !selected?.trigger.contains(event.target)) close();
   });
-  addEventListener('hub-family:change',()=>close());
+  addEventListener('hub-family:change', () => close());
   addEventListener('scroll', () => close(), {passive: true});
   addEventListener('resize', () => close(), {passive: true});
 })();
