@@ -101,7 +101,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-art.jpg",
       "imageAlt": "Фрагмент многослойной живописи Дениса Гардари",
       "imagePosition": "50% 50%",
-      "url": "https://gardari.art/gallery",
+      "url": "https://gallery.gardari.art/",
       "action": "ПЕРЕЙТИ НА СТРАНИЦУ ГАЛЕРЕИ",
       "disciplines": [
         "живопись",
@@ -253,7 +253,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-club.jpg",
       "imageAlt": "Участники клубной встречи",
       "imagePosition": "50% 42%",
-      "url": "https://gardari.art/gardari_club",
+      "url": "https://club.gardari.art/",
       "action": "ПЕРЕЙТИ НА СТРАНИЦУ КЛУБА",
       "disciplines": [
         "культура",
