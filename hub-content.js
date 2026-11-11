@@ -63,7 +63,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/denis-studio.jpg",
       "imageAlt": "Денис Гардари и Ваня в художественной мастерской",
       "imagePosition": "50% 42%",
-      "url": "https://dgardari-ai.github.io/kb-gardari/",
+      "url": "https://kb.gardari.art/",
       "action": "ПЕРЕЙТИ НА САЙТ КБ",
       "disciplines": [
         "проекты",
@@ -139,7 +139,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-stories.jpg",
       "imageAlt": "Денис Гардари на городской аллее, прохожие на заднем плане",
       "imagePosition": "23% 42%",
-      "url": "https://gardariki.gardari.art",
+      "url": "https://gardariki.gardari.art/",
       "action": "ПОЧИТАТЬ ГАРДАРИКИ",
       "disciplines": [
         "истории",
@@ -177,7 +177,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-publications.jpg",
       "imageAlt": "Рукопись «Мышление х.0» на столе с цветами",
       "imagePosition": "50% 50%",
-      "url": "https://blog.gardari.art",
+      "url": "https://blog.gardari.art/",
       "action": "ПЕРЕЙТИ НА СТРАНИЦУ ПУБЛИКАЦИЙ",
       "disciplines": [
         "статьи",
@@ -215,7 +215,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-tools.jpg",
       "imageAlt": "Чёрно-белая композиция с парящими предметами",
       "imagePosition": "50% 50%",
-      "url": "https://dgardari-ai.github.io/gardari-tools-platform/",
+      "url": "https://platforma.gardari.art/",
       "action": "ПОПРОБОВАТЬ ИНСТРУМЕНТЫ",
       "disciplines": [
         "методики",
@@ -291,7 +291,7 @@ window.GARDARI_HUB_CONTENT = {
       "image": "./assets/hub-homo-cogitans.jpg",
       "imageAlt": "Скульптура человека, смотрящего вверх — образ проекта HOMO COGITANS",
       "imagePosition": "50% 0%",
-      "url": "https://dgardari-ai.github.io/homo-cogitans-x0-preview/",
+      "url": "https://x0.gardari.art/",
       "action": "ОТКРЫТЬ HOMO COGITANS",
       "disciplines": [
         "мышление",
@@ -397,7 +397,7 @@ window.GARDARI_HUB_CONTENT = {
             "id": "website",
             "label": "Сайт КБ",
             "text": "kb.gardari.art",
-            "url": "https://kb.gardari.art",
+            "url": "https://kb.gardari.art/",
             "icon": "website"
           },
           {
@@ -417,7 +417,7 @@ window.GARDARI_HUB_CONTENT = {
             "id": "website",
             "label": "Сайт галереи",
             "text": "gallery.gardari.art",
-            "url": "https://gallery.gardari.art",
+            "url": "https://gallery.gardari.art/",
             "icon": "website"
           },
           {
@@ -444,7 +444,7 @@ window.GARDARI_HUB_CONTENT = {
             "id": "website",
             "label": "Сайт клуба",
             "text": "club.gardari.art",
-            "url": "https://club.gardari.art",
+            "url": "https://club.gardari.art/",
             "icon": "website"
           },
           {
