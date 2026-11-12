@@ -298,3 +298,6 @@
   text-align: left;
 }
 #contacts .gardari-privacy-change-button[hidden] { display: none !important; }
+
+/* Leave scrolling room for legal controls behind the fixed footer. */
+#contacts { padding-bottom: max(130px, calc(env(safe-area-inset-bottom, 0px) + 130px)); }
