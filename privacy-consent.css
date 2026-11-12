@@ -341,3 +341,129 @@
     font-size: 8px;
   }
 }
+
+
+/* Approved 12 Nov visual: balanced compact two-column cookie banner. */
+.gardari-consent-panel {
+  grid-template-columns: minmax(0, 1fr) 170px;
+  align-items: center;
+  column-gap: 22px;
+  padding: 16px 17px;
+}
+.gardari-consent-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+.gardari-consent-top {
+  display: block;
+}
+.gardari-consent-title {
+  font-size: 14px;
+  line-height: 1.35;
+}
+.gardari-consent-description {
+  margin: 5px 0 0;
+  color: #4e5358;
+  font: 400 12.5px/1.42 Arial, Helvetica, sans-serif;
+}
+.gardari-consent-policy {
+  display: inline-block;
+  margin-top: 3px;
+  color: #54585c;
+  font: 500 12.5px/1.42 Arial, Helvetica, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.gardari-consent-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+}
+.gardari-consent-actions .gardari-consent-allow {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid #202124;
+  border-radius: 7px;
+  background: var(--yellow, #d8c62a);
+  color: #202124;
+  font: 700 10px/1.25 var(--mono, monospace);
+  text-align: center;
+}
+.gardari-consent-actions .gardari-consent-necessary {
+  display: block;
+  min-height: 28px;
+  padding: 3px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #33373b;
+  font: 700 10.5px/1.25 var(--mono, monospace);
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.gardari-consent-actions .gardari-consent-necessary:hover {
+  background: transparent;
+  color: #6c5e00;
+}
+@media (max-width: 620px) {
+  .gardari-consent-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 138px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 12px 13px;
+  }
+  .gardari-consent-title { font-size: 12px; }
+  .gardari-consent-description {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .gardari-consent-policy {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .gardari-consent-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 0;
+  }
+  .gardari-consent-actions .gardari-consent-allow {
+    min-height: 40px;
+    padding: 7px 5px;
+    font-size: 9px;
+  }
+  .gardari-consent-actions .gardari-consent-necessary {
+    min-height: 26px;
+    padding: 2px;
+    font-size: 9px;
+  }
+}
+@media (max-width: 345px) {
+  .gardari-consent-panel {
+    grid-template-columns: minmax(0, 1fr) 112px;
+    column-gap: 8px;
+    padding: 10px;
+  }
+  .gardari-consent-title { font-size: 11.5px; }
+  .gardari-consent-description,
+  .gardari-consent-policy {
+    font-size: 11px;
+  }
+  .gardari-consent-actions .gardari-consent-allow,
+  .gardari-consent-actions .gardari-consent-necessary {
+    font-size: 8.5px;
+  }
+}
