@@ -1,0 +1,492 @@
+/* Compact privacy choice for Gardari preview, v1.1. */
+.gardari-consent-panel,
+.gardari-consent-footer {
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  color: var(--ink, #202124);
+}
+.gardari-consent-panel[hidden],
+.gardari-consent-settings[hidden] { display: none !important; }
+
+.gardari-consent-panel {
+  position: fixed;
+  z-index: 9000;
+  left: 50%;
+  bottom: max(54px, calc(env(safe-area-inset-bottom, 0px) + 54px));
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 171px;
+  gap: 17px;
+  align-items: center;
+  width: min(780px, calc(100vw - 28px));
+  max-height: calc(100dvh - 70px);
+  overflow: auto;
+  margin: 0;
+  padding: 13px 16px;
+  border: 1px solid #202124;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(18, 22, 25, .19);
+  text-align: left;
+  box-sizing: border-box;
+}
+.gardari-consent-copy { min-width: 0; }
+.gardari-consent-top {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.gardari-consent-title {
+  margin: 0;
+  color: #202124;
+  font: 700 14px/1.24 var(--mono, monospace);
+  letter-spacing: -.035em;
+}
+.gardari-consent-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border: 1px solid #202124;
+  border-radius: 50%;
+  background: var(--yellow, #d8c62a);
+}
+.gardari-consent-policy {
+  color: #41464a;
+  font: 500 10px/1.25 var(--mono, monospace);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.gardari-consent-description {
+  margin: 7px 0 0;
+  color: #4e5358;
+  font: 400 12.5px/1.42 Arial, Helvetica, sans-serif;
+}
+.gardari-consent-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+.gardari-consent-actions button {
+  display: grid;
+  min-height: 38px;
+  place-items: center;
+  padding: 7px 11px;
+  border: 1px solid #202124;
+  border-radius: 7px;
+  color: #202124;
+  background: white;
+  font: 600 10.5px/1.25 var(--mono, monospace);
+  text-align: center;
+  transition: background-color .12s ease;
+}
+.gardari-consent-actions .gardari-consent-allow { background: var(--yellow, #d8c62a); }
+.gardari-consent-actions .gardari-consent-necessary:hover { background: #f0f0ed; }
+.gardari-consent-actions .gardari-consent-allow:hover { background: #e7d953; }
+.gardari-consent-actions button:focus-visible,
+.gardari-consent-footer a:focus-visible,
+.gardari-consent-footer button:focus-visible {
+  outline: 2px solid #21669b;
+  outline-offset: 3px;
+}
+.gardari-consent-footer {
+  position: fixed;
+  z-index: 8999;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+.gardari-consent-footer-link,
+.gardari-consent-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  max-width: calc(100vw - 24px);
+  padding: 7px 12px;
+  border: 1px solid #202124;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 3px 11px rgba(18, 22, 25, .08);
+  color: #202124;
+  font: 500 10px/1.25 var(--mono, monospace);
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.gardari-consent-footer-link:hover,
+.gardari-consent-settings:hover { background: #f9f6db; }
+@media (max-width: 620px) {
+  .gardari-consent-panel {
+    display: block;
+    bottom: max(51px, calc(env(safe-area-inset-bottom, 0px) + 51px));
+    width: calc(100vw - 24px);
+    padding: 12px 13px;
+  }
+  .gardari-consent-title { font-size: 12px; }
+  .gardari-consent-policy { font-size: 9.5px; }
+  .gardari-consent-description {
+    margin-top: 7px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .gardari-consent-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+    margin-top: 10px;
+  }
+  .gardari-consent-actions button {
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 9.5px;
+  }
+  .gardari-consent-footer-link,
+  .gardari-consent-settings {
+    min-height: 30px;
+    font-size: 9px;
+    padding: 7px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gardari-consent-actions button { transition: none; }
+}
+/* Keep the permanent link visibly readable without enlarging the banner. */
+.gardari-consent-footer-link {
+  background: #f9f5d5;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .gardari-consent-footer-link { font-size: 10px; }
+}
+
+/* One legal footer across Home / Contacts / Quotes, 12 November 2026. */
+.gardari-consent-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 16px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px max(16px, calc((100vw - 964px) / 2));
+  min-height: 43px;
+  border-top: 0;
+  border-radius: 0;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: none;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+.gardari-consent-copyright {
+  display: inline-block;
+  flex: none;
+  font: 500 10px/1.4 var(--mono, monospace);
+  color: #666a6d;
+  white-space: nowrap;
+}
+.gardari-consent-footer .gardari-consent-footer-link,
+.gardari-consent-footer .gardari-consent-settings {
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #202124;
+  font: 500 10px/1.3 var(--mono, monospace);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-align: left;
+  white-space: nowrap;
+}
+.gardari-consent-footer .gardari-consent-footer-link:hover,
+.gardari-consent-footer .gardari-consent-settings:hover {
+  background: none;
+  color: #5a5100;
+}
+.gardari-consent-footer .gardari-consent-settings { margin-left: auto; }
+.gardari-consent-panel { bottom: max(57px, calc(env(safe-area-inset-bottom, 0px) + 57px)); }
+.gardari-operator-details {
+  margin: 0 0 15px;
+  padding: 0;
+  font: 400 13px/1.45 Arial, Helvetica, sans-serif;
+}
+.gardari-operator-details > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.gardari-operator-details dt {
+  color: #6c7277;
+  font: 400 10px/1.45 var(--mono, monospace);
+}
+.gardari-operator-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.gardari-operator-details a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .gardari-consent-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas:
+      "copy settings"
+      "policy contacts";
+    column-gap: 10px;
+    row-gap: 0;
+    padding: 5px 12px calc(5px + env(safe-area-inset-bottom, 0px));
+    min-height: 62px;
+  }
+  .gardari-consent-copyright { grid-area: copy; font-size: 9px; }
+  .gardari-consent-footer .gardari-footer-policy { grid-area: policy; }
+  .gardari-consent-footer .gardari-footer-contacts { grid-area: contacts; }
+  .gardari-consent-footer .gardari-consent-settings { grid-area: settings; margin: 0; justify-self: end; }
+  .gardari-consent-footer .gardari-consent-footer-link,
+  .gardari-consent-footer .gardari-consent-settings {
+    min-height: 23px;
+    padding: 3px 0;
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .gardari-consent-panel { bottom: max(75px, calc(env(safe-area-inset-bottom, 0px) + 75px)); }
+  .gardari-operator-details > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    padding: 3px 0;
+  }
+  .gardari-operator-details dt {
+    flex: none;
+    width: var(--phone-contact-label-width, 80px);
+    margin-right: 16px;
+    font-size: 9.3px;
+    text-transform: uppercase;
+  }
+  .gardari-operator-details dd { flex: 1; font-size: 14px; line-height: 1.35; }
+}
+@media (max-width: 345px) {
+  .gardari-consent-footer { column-gap: 4px; padding-inline: 8px; }
+  .gardari-consent-footer .gardari-consent-footer-link { font-size: 8px; }
+}
+
+/* Cookie preference access lives inside Contacts, not the permanent footer. */
+#contacts .gardari-privacy-change-button {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+#contacts .gardari-privacy-change-button[hidden] { display: none !important; }
+
+/* Leave scrolling room for legal controls behind the fixed footer. */
+#contacts { padding-bottom: max(130px, calc(env(safe-area-inset-bottom, 0px) + 130px)); }
+
+
+/* Center legal information; settings remain beside the policy and at the end of Contacts. */
+.gardari-consent-footer {
+  justify-content: center;
+}
+.gardari-consent-footer .gardari-footer-settings {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.gardari-consent-footer .gardari-footer-settings[hidden] {
+  display: none !important;
+}
+@media (max-width: 620px) {
+  .gardari-consent-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px 12px;
+    min-height: 62px;
+  }
+  .gardari-consent-footer > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .gardari-consent-panel {
+    bottom: max(105px, calc(env(safe-area-inset-bottom, 0px) + 105px));
+  }
+}
+@media (max-width: 345px) {
+  .gardari-consent-footer {
+    gap: 2px 8px;
+  }
+  .gardari-consent-footer .gardari-footer-settings {
+    font-size: 8px;
+  }
+}
+
+
+/* Approved 12 Nov visual: balanced compact two-column cookie banner. */
+.gardari-consent-panel {
+  grid-template-columns: minmax(0, 1fr) 170px;
+  align-items: center;
+  column-gap: 22px;
+  padding: 16px 17px;
+}
+.gardari-consent-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+.gardari-consent-top {
+  display: block;
+}
+.gardari-consent-title {
+  font-size: 14px;
+  line-height: 1.35;
+}
+.gardari-consent-description {
+  margin: 5px 0 0;
+  color: #4e5358;
+  font: 400 12.5px/1.42 Arial, Helvetica, sans-serif;
+}
+.gardari-consent-policy {
+  display: inline-block;
+  margin-top: 3px;
+  color: #54585c;
+  font: 500 12.5px/1.42 Arial, Helvetica, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.gardari-consent-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+}
+.gardari-consent-actions .gardari-consent-allow {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid #202124;
+  border-radius: 7px;
+  background: var(--yellow, #d8c62a);
+  color: #202124;
+  font: 700 10px/1.25 var(--mono, monospace);
+  text-align: center;
+}
+.gardari-consent-actions .gardari-consent-necessary {
+  display: block;
+  min-height: 28px;
+  padding: 3px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #33373b;
+  font: 700 10.5px/1.25 var(--mono, monospace);
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.gardari-consent-actions .gardari-consent-necessary:hover {
+  background: transparent;
+  color: #6c5e00;
+}
+@media (max-width: 620px) {
+  .gardari-consent-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 138px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 12px 13px;
+  }
+  .gardari-consent-title { font-size: 12px; }
+  .gardari-consent-description {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .gardari-consent-policy {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .gardari-consent-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 0;
+  }
+  .gardari-consent-actions .gardari-consent-allow {
+    min-height: 40px;
+    padding: 7px 5px;
+    font-size: 9px;
+  }
+  .gardari-consent-actions .gardari-consent-necessary {
+    min-height: 26px;
+    padding: 2px;
+    font-size: 9px;
+  }
+}
+@media (max-width: 345px) {
+  .gardari-consent-panel {
+    grid-template-columns: minmax(0, 1fr) 112px;
+    column-gap: 8px;
+    padding: 10px;
+  }
+  .gardari-consent-title { font-size: 11.5px; }
+  .gardari-consent-description,
+  .gardari-consent-policy {
+    font-size: 11px;
+  }
+  .gardari-consent-actions .gardari-consent-allow,
+  .gardari-consent-actions .gardari-consent-necessary {
+    font-size: 8.5px;
+  }
+}
+
+
+/* Mobile / portrait tablet: legal footer follows page content, never floats over it.
+   Desktop layout is intentionally unchanged. */
+@media (max-width: 680px), (min-width: 681px) and (max-width: 1024px) and (orientation: portrait) {
+  .gardari-consent-footer {
+    position: static;
+    inset: auto;
+    width: auto;
+    margin: 0 auto;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    z-index: auto;
+  }
+  .gardari-consent-panel {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+  #contacts {
+    padding-bottom: 32px;
+  }
+}
