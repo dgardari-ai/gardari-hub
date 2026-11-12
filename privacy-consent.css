@@ -301,3 +301,43 @@
 
 /* Leave scrolling room for legal controls behind the fixed footer. */
 #contacts { padding-bottom: max(130px, calc(env(safe-area-inset-bottom, 0px) + 130px)); }
+
+
+/* Center legal information; settings remain beside the policy and at the end of Contacts. */
+.gardari-consent-footer {
+  justify-content: center;
+}
+.gardari-consent-footer .gardari-footer-settings {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.gardari-consent-footer .gardari-footer-settings[hidden] {
+  display: none !important;
+}
+@media (max-width: 620px) {
+  .gardari-consent-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px 12px;
+    min-height: 62px;
+  }
+  .gardari-consent-footer > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .gardari-consent-panel {
+    bottom: max(105px, calc(env(safe-area-inset-bottom, 0px) + 105px));
+  }
+}
+@media (max-width: 345px) {
+  .gardari-consent-footer {
+    gap: 2px 8px;
+  }
+  .gardari-consent-footer .gardari-footer-settings {
+    font-size: 8px;
+  }
+}

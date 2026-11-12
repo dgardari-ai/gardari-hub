@@ -11,10 +11,10 @@
   const scriptElement = document.currentScript;
   const counterId = Number(scriptElement?.getAttribute('data-metrica-id') || 0);
   const panel = document.getElementById('gardari-consent-panel');
-  const manage = document.getElementById('gardari-consent-manage');
+  const manageControls = [...document.querySelectorAll('[data-gardari-cookie-settings]')];
   const necessaryButton = document.getElementById('gardari-consent-necessary');
   const allowButton = document.getElementById('gardari-consent-allow');
-  if (!panel || !manage || !necessaryButton || !allowButton) return;
+  if (!panel || !manageControls.length || !necessaryButton || !allowButton) return;
 
   const host = location.hostname;
   const sharedDomain = host === 'gardari.art' || host.endsWith('.gardari.art');
@@ -78,16 +78,14 @@
   }
   function showPanel(focus) {
     panel.hidden = false;
-    manage.hidden = true;
+    manageControls.forEach(control => { control.hidden = true; });
     if (focus) necessaryButton.focus();
   }
   function hidePanel() {
     panel.hidden = true;
-    manage.hidden = false;
-    if (trigger) {
-      trigger.focus();
-      trigger = null;
-    }
+    manageControls.forEach(control => { control.hidden = false; });
+    if (trigger?.isConnected) trigger.focus();
+    trigger = null;
   }
   function setChoice(analytics) {
     const wasRunning = analyticsStarted;
@@ -102,10 +100,10 @@
       location.reload();
     }
   }
-  manage.addEventListener('click', () => {
-    trigger = manage;
+  manageControls.forEach(control => control.addEventListener('click', () => {
+    trigger = control;
     showPanel(true);
-  });
+  }));
   necessaryButton.addEventListener('click', () => setChoice(false));
   allowButton.addEventListener('click', () => setChoice(true));
   panel.addEventListener('keydown', event => {
@@ -119,9 +117,11 @@
     openSettings: () => showPanel(true)
   });
   choice = readChoice();
+  const previewRequested = new URLSearchParams(location.search).get('cookie-settings') === 'open';
   if (!choice) showPanel(false);
   else {
     hidePanel();
     if (choice.analytics) enableConfiguredMetrika();
+    if (previewRequested) showPanel(false);
   }
 })();
