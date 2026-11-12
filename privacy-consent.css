@@ -182,10 +182,10 @@
   bottom: 0;
   padding: 5px max(16px, calc((100vw - 964px) / 2));
   min-height: 43px;
-  border-top: 1px solid #e1e1dc;
+  border-top: 0;
   border-radius: 0;
   background: rgb(255 255 255 / 97%);
-  box-shadow: 0 -4px 18px rgb(16 20 24 / 5%);
+  box-shadow: none;
   box-sizing: border-box;
   pointer-events: auto;
 }
@@ -287,3 +287,14 @@
   .gardari-consent-footer { column-gap: 4px; padding-inline: 8px; }
   .gardari-consent-footer .gardari-consent-footer-link { font-size: 8px; }
 }
+
+/* Cookie preference access lives inside Contacts, not the permanent footer. */
+#contacts .gardari-privacy-change-button {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+#contacts .gardari-privacy-change-button[hidden] { display: none !important; }
