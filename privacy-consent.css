@@ -158,3 +158,14 @@
 @media (prefers-reduced-motion: reduce) {
   .gardari-consent-actions button { transition: none; }
 }
+/* Keep the permanent link visibly readable without enlarging the banner. */
+.gardari-consent-footer-link {
+  background: #f9f5d5;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .gardari-consent-footer-link { font-size: 10px; }
+}
