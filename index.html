@@ -7,7 +7,7 @@
 <link rel="icon" href="assets/favicon-light.ico" media="(prefers-color-scheme:light)">
 <link rel="icon" href="assets/favicon-dark.ico" media="(prefers-color-scheme:dark)">
 <link rel="stylesheet" href="styles.css?v=5.0-816fad5f"><link rel="stylesheet" href="hub-editor.css?v=5.0-816fad5f"><script>document.documentElement.classList.add('enter-pending');document.documentElement.dataset.hubLayout=innerWidth<=680?'phone':innerWidth<=1024&&innerHeight>=innerWidth?'tablet-portrait':innerWidth<=1366?'tablet-landscape':'desktop';</script>
-<script defer src="app.js?v=5.0-816fad5f" onerror="document.documentElement.classList.remove('enter-pending')"></script><noscript><style>.enter-pending .accordion-panel,.enter-pending .section-tab,.enter-pending .brand-disc,.enter-pending .brand-name{opacity:1!important}</style></noscript><link rel="stylesheet" href="privacy-consent.css?v=1.0.0"><script defer src="privacy-consent.js?v=1.0.0" data-metrica-id=""></script></head><body class="is-landing">
+<script defer src="app.js?v=5.0-816fad5f" onerror="document.documentElement.classList.remove('enter-pending')"></script><noscript><style>.enter-pending .accordion-panel,.enter-pending .section-tab,.enter-pending .brand-disc,.enter-pending .brand-name{opacity:1!important}</style></noscript><link rel="stylesheet" href="privacy-consent.css?v=1.1.0"><script defer src="privacy-consent.js?v=1.1.0" data-metrica-id=""></script></head><body class="is-landing">
 <a class="skip-link" href="#main">К содержанию</a>
 <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><filter id="hub-warm-mono" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.2250935 0.7572288 0.0764428 0 -0.0323302 0.2104422 0.7079411 0.0714672 0 0.0082152 0.1971864 0.6633476 0.0669655 0 0.0138209 0 0 0 1 0"/></filter></defs></svg>
 <div class="page-shell"><div class="header-sleeve"><header class="matrix-header">
@@ -53,19 +53,25 @@
 </main></div><dialog class="section-video-player" id="section-video-player" aria-labelledby="section-video-title"><div class="section-video-view"><img class="section-video-poster" alt=""><video playsinline preload="none" disablepictureinpicture hidden></video><button class="section-video-toggle" type="button" aria-label="Воспроизвести видео" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4.5 20 12 7 19.5Z"/></svg></button><svg class="section-video-ring" viewBox="0 0 100 100" aria-hidden="true" hidden><circle class="section-video-track" cx="50" cy="50" r="49"/><circle class="section-video-progress" cx="50" cy="50" r="49"/></svg><progress class="visually-hidden" value="0" max="1" aria-label="Прогресс видео"></progress><p class="section-video-status" role="status" aria-live="polite"></p></div><button class="section-video-close" type="button" aria-label="Закрыть видео"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><h2 class="section-video-title visually-hidden" id="section-video-title"></h2></dialog>
 <section class="gardari-consent-panel" id="gardari-consent-panel" role="dialog"
  aria-labelledby="gardari-consent-title" aria-describedby="gardari-consent-description" hidden>
-  <p class="gardari-consent-kicker">Гардари / конфиденциальность</p>
-  <h2 class="gardari-consent-title" id="gardari-consent-title">Настройки конфиденциальности</h2>
-  <p class="gardari-consent-description" id="gardari-consent-description">
-    Мы хотим использовать <strong>Яндекс.Метрику</strong>, чтобы понимать, как посетители пользуются сайтом.
-    Аналитика включается только с вашего разрешения. Без неё сайт продолжит работать.
-  </p>
-  <a class="gardari-consent-policy" href="https://gardari.art/legal/privacy/"
-     target="_blank" rel="noopener noreferrer">Политика обработки персональных данных</a>
+  <div class="gardari-consent-copy">
+    <div class="gardari-consent-top">
+      <h2 class="gardari-consent-title" id="gardari-consent-title">Cookie и аналитика</h2>
+      <a class="gardari-consent-policy" href="https://gardari.art/legal/privacy/"
+         target="_blank" rel="noopener noreferrer">Политика данных</a>
+    </div>
+    <p class="gardari-consent-description" id="gardari-consent-description">
+      Необходимые технологии обеспечивают работу сайта. Аналитику посещений включаем только с вашего разрешения.
+    </p>
+  </div>
   <div class="gardari-consent-actions">
     <button type="button" class="gardari-consent-necessary" id="gardari-consent-necessary">Только необходимые</button>
     <button type="button" class="gardari-consent-allow" id="gardari-consent-allow">Разрешить аналитику</button>
   </div>
 </section>
-<button type="button" class="gardari-consent-settings" id="gardari-consent-manage"
- aria-controls="gardari-consent-panel" aria-label="Изменить настройки cookie" hidden>Настройки cookie</button>
+<nav class="gardari-consent-footer" aria-label="Юридическая информация и настройки конфиденциальности">
+  <a class="gardari-consent-footer-link" href="https://gardari.art/legal/privacy/"
+     target="_blank" rel="noopener noreferrer" aria-label="Политика обработки персональных данных">Политика данных</a>
+  <button type="button" class="gardari-consent-settings" id="gardari-consent-manage"
+   aria-controls="gardari-consent-panel" aria-label="Изменить настройки cookie" hidden>Настройки cookie</button>
+</nav>
 </body></html>

@@ -4,9 +4,9 @@
  */
 (() => {
   'use strict';
-  const VERSION = 1;
-  const STORAGE_KEY = 'gardari-privacy-choice:v1';
-  const SHARED_COOKIE = 'gardari_privacy_choice_v1';
+  const VERSION = 2;
+  const STORAGE_KEY = 'gardari-privacy-choice:v2';
+  const SHARED_COOKIE = 'gardari_privacy_choice_v2';
   const LIFETIME = 180 * 24 * 60 * 60;
   const scriptElement = document.currentScript;
   const counterId = Number(scriptElement?.getAttribute('data-metrica-id') || 0);
