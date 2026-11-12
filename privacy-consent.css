@@ -467,3 +467,26 @@
     font-size: 8.5px;
   }
 }
+
+
+/* Mobile / portrait tablet: legal footer follows page content, never floats over it.
+   Desktop layout is intentionally unchanged. */
+@media (max-width: 680px), (min-width: 681px) and (max-width: 1024px) and (orientation: portrait) {
+  .gardari-consent-footer {
+    position: static;
+    inset: auto;
+    width: auto;
+    margin: 0 auto;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    z-index: auto;
+  }
+  .gardari-consent-panel {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+  #contacts {
+    padding-bottom: 32px;
+  }
+}
