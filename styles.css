@@ -361,3 +361,232 @@ button:focus-visible, a:focus-visible { outline: 2px solid #21669b; outline-offs
 #quotes .specimens{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:680px){#quotes .specimens{grid-template-columns:1fr}}
 @media(min-width:681px) and (max-width:1024px) and (orientation:portrait){#quotes .specimens{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* r03: one copy block, then a paired links column and a right action. */
+:root {
+  --consent-field-left: max(16px, calc((100vw - 964px) / 2));
+  --consent-field-width: min(964px, calc(100vw - 32px));
+}
+.gardari-consent-panel {
+  position: fixed;
+  z-index: 9000;
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  left: var(--consent-field-left);
+  width: var(--consent-field-width);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px;
+  border: 1px solid var(--ink);
+  border-radius: var(--card-radius);
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 5px 18px rgb(32 33 36 / 9%);
+}
+.gardari-consent-copy { display: grid; gap: 8px; min-width: 0; }
+.gardari-consent-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font: 500 14px/1.3 var(--mono);
+  letter-spacing: -.025em;
+  text-transform: uppercase;
+}
+.gardari-consent-title::before {
+  content: '';
+  flex: none;
+  width: .72em;
+  height: .72em;
+  width: 1cap;
+  height: 1cap;
+  background: var(--yellow);
+}
+.gardari-consent-description {
+  margin: 0;
+  color: var(--ink);
+  font: 400 12px/1.4 var(--mono);
+  letter-spacing: -.015em;
+  text-transform: none;
+  text-wrap: pretty;
+}
+.gardari-consent-policy {
+  color: var(--body);
+  font: 400 10px/1.4 var(--mono);
+  text-transform: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.gardari-consent-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 20px;
+}
+.gardari-consent-links { display: grid; align-content: center; justify-items: start; gap: 4px; min-width: 0; }
+.gardari-consent-actions .gardari-consent-links > :is(a, button) {
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  color: var(--body);
+  font: 400 10px/1.4 var(--mono);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-align: left;
+}
+.gardari-consent-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--paper);
+  font: 500 10px/1.35 var(--mono);
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  text-align: center;
+  transition: background-color 140ms var(--ease), transform 140ms var(--ease);
+}
+.gardari-consent-actions .gardari-consent-allow {
+  background: var(--yellow);
+  border: 1px solid #000;
+  grid-column: 2;
+}
+.gardari-consent-actions .gardari-consent-allow:hover {
+  background: #000;
+  color: #fff;
+}
+.gardari-consent-actions .gardari-consent-necessary {
+  justify-content: flex-start;
+  padding-inline: 0;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 400;
+  text-transform: uppercase;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.gardari-consent-actions .gardari-consent-necessary:hover { color: #000; }
+.gardari-consent-actions button:active { transform: scale(.97); }
+.gardari-consent-panel a:hover { color: var(--ink); }
+html[data-consent-layout='right'] .gardari-consent-panel {
+  left: calc(var(--consent-field-left) + var(--consent-field-width) / 2);
+  width: calc(var(--consent-field-width) / 2);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.gardari-consent-footer {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 7px 20px;
+  margin-top: 36px;
+  padding: 0 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  color: var(--body);
+  font: 400 9px/1.5 var(--mono);
+  text-transform: uppercase;
+}
+.gardari-consent-footer a { text-underline-offset: 3px; }
+.gardari-consent-footer a:hover { color: var(--ink); }
+#contacts .gardari-legal-group {
+  width: calc(100% - var(--contacts-left, 20px));
+  margin: 38px 0 0 var(--contacts-left, 20px);
+  padding-top: 0;
+  border: 0;
+  scroll-margin-top: 100px;
+}
+#contacts .gardari-legal-group h3 {
+  margin: 0 0 19px;
+  font: 700 20px/1.1 Arial, Helvetica, sans-serif;
+  letter-spacing: -.035em;
+}
+.gardari-operator-details { margin: 0 0 22px; }
+.gardari-operator-details > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 9px;
+}
+.gardari-operator-details dt {
+  color: var(--body);
+  font: 400 10px/1.45 var(--mono);
+  text-transform: uppercase;
+}
+.gardari-operator-details dd {
+  margin: 0;
+  color: var(--ink);
+  font: 400 15px/1.5 Arial, Helvetica, sans-serif;
+  overflow-wrap: anywhere;
+}
+.gardari-operator-details a { text-underline-offset: 3px; }
+#contacts .gardari-legal-group .contact-link {
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+@media (max-width: 1024px) {
+  .gardari-consent-panel { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+@media (max-width: 680px), (min-width: 681px) and (max-width: 1024px) and (orientation: portrait) {
+  /* Keep a readable field beside the phone/portrait-tablet menu. */
+  html[data-consent-layout] .gardari-consent-panel {
+    left: var(--consent-field-left);
+    width: var(--consent-field-width);
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 24px);
+    padding: 14px 13px;
+    gap: 12px;
+  }
+  .gardari-consent-title { font-size: 12px; gap: 8px; }
+  .gardari-consent-description { font-size: 11px; line-height: 1.4; }
+  .gardari-consent-policy { font-size: 9px; }
+  html[data-consent-layout] .gardari-consent-panel .gardari-consent-actions {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    max-width: none;
+    gap: 12px;
+  }
+  .gardari-consent-actions button { font-size: 9px; padding-inline: 9px; }
+  .gardari-consent-actions .gardari-consent-necessary { padding-inline: 0; }
+  .gardari-consent-actions .gardari-consent-links > :is(a, button) { font-size: 9px; }
+  .gardari-consent-footer { gap: 9px 16px; justify-content: flex-start; margin-top: 28px; font-size: 9px; }
+  .phone-sidebar-preview #contacts .gardari-legal-group { width: 100%; margin-left: 0; }
+  .phone-sidebar-preview #contacts .gardari-legal-group h3 { font-size: 21.6px; }
+  .gardari-operator-details > div { display: block; margin-top: 15px; }
+  .gardari-operator-details dt { margin-bottom: 3px; font-size: 9.333333px; }
+  .gardari-operator-details dd { font-size: 16.8px; line-height: 1.4; }
+  #contacts .gardari-legal-group .contact-link { display: block; position: relative; margin-top: 15px; padding-right: 22px; }
+  #contacts .gardari-legal-group .contact-label { display: block; width: auto; margin-bottom: 3px; }
+  #contacts .gardari-legal-group .contact-value { display: inline; margin: 0; }
+  .phone-sidebar-preview #contacts .gardari-legal-group .phone-contact-fill {
+    position: absolute;
+    right: 0;
+    top: 22px;
+    width: 10px;
+    min-width: 10px;
+    height: 10px;
+    margin: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gardari-consent-actions button { transition: none; }
+}
