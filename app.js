@@ -1049,19 +1049,39 @@
   let scrollFrame=null;
   function alignScrollEnd(){
     scrollFrame=null;
+    const main=document.getElementById('main');
+    const legalFooter=document.querySelector('.gardari-consent-footer');
     const section=document.querySelector('.direction-description:not([hidden])');
-    const footer=section?.querySelector('.panel-route-row,.panel-contact-row');
-    if(!phone.matches||!footer?.offsetWidth){root.style.removeProperty('--phone-scroll-tail');return;}
-    const last=buttons.at(-1).getBoundingClientRect(),pane=nav.getBoundingClientRect();
-    const anchor=Math.min(last.bottom,pane.bottom);
-    const tail=Math.max(0,innerHeight-anchor).toFixed(4)+'px';
+    const action=section?.querySelector('.panel-route-row,.panel-contact-row');
+    if(!phone.matches){
+      root.style.removeProperty('--phone-scroll-tail');
+      root.style.removeProperty('--phone-legal-reserve');
+      main.style.removeProperty('min-height');return;
+    }
+    // The legal footer follows the content; it must not move its last actions
+    // above tile 10 when the document reaches its scrolling limit.
+    const afterContent=Math.max(0,shell.getBoundingClientRect().bottom-main.getBoundingClientRect().bottom);
+    const previousReserve=parseFloat(root.style.getPropertyValue('--phone-legal-reserve'))||0;
+    const basePaneBottom=nav.getBoundingClientRect().bottom+previousReserve;
+    const naturalBottom=Math.min(buttons.at(-1).getBoundingClientRect().bottom+nav.scrollTop,basePaneBottom);
+    const reserve=(naturalBottom+afterContent>innerHeight?Math.max(0,basePaneBottom-(innerHeight-afterContent)):0).toFixed(4)+'px';
+    if(root.style.getPropertyValue('--phone-legal-reserve')!==reserve)root.style.setProperty('--phone-legal-reserve',reserve);
+    const anchor=Math.min(buttons.at(-1).getBoundingClientRect().bottom,nav.getBoundingClientRect().bottom);
+    if(!action?.offsetWidth&&legalFooter){
+      const minimum=Math.max(0,anchor-(main.getBoundingClientRect().top+scrollY)).toFixed(4)+'px';
+      if(main.style.minHeight!==minimum)main.style.minHeight=minimum;
+    }else main.style.removeProperty('min-height');
+    const tail=Math.max(0,innerHeight-anchor-afterContent).toFixed(4)+'px';
     if(root.style.getPropertyValue('--phone-scroll-tail')!==tail)root.style.setProperty('--phone-scroll-tail',tail);
   }
   function queueScrollEnd(){if(scrollFrame===null)scrollFrame=requestAnimationFrame(alignScrollEnd);}
   const endObserver=typeof ResizeObserver==='function'?new ResizeObserver(queueScrollEnd):null;
   endObserver?.observe(shell);endObserver?.observe(nav);
+  const legalEnd=document.querySelector('.gardari-consent-footer');if(legalEnd)endObserver?.observe(legalEnd);
   document.querySelectorAll('.panel-route-row,.panel-contact-row').forEach(row=>endObserver?.observe(row));
-  addEventListener('resize',queueScrollEnd,{passive:true});nav.addEventListener('scroll',queueScrollEnd,{passive:true});
+  addEventListener('resize',queueScrollEnd,{passive:true});
+  window.visualViewport?.addEventListener('resize',queueScrollEnd,{passive:true});
+  nav.addEventListener('scroll',queueScrollEnd,{passive:true});
   document.fonts.ready.then(queueScrollEnd);
   let collapsed=false;
   function syncSelection(){const page=window.HubFamily.page();buttons.forEach((button,i)=>button.setAttribute('aria-pressed',String(pages[i]===page)));}
