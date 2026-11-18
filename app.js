@@ -888,9 +888,12 @@
     if (index !== null) links[index].focus({preventScroll: true});
   }));
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && selected !== null) {
-      const index = selected; hideDescriptions(); links[index].focus({preventScroll: true});
-    }
+    if (event.key !== 'Escape' || event.defaultPrevented || selected === null) return;
+    if (document.querySelector('#section-video-player[open]')) return;
+
+    const index = selected;
+    hideDescriptions();
+    links[index].focus({preventScroll: true});
   });
 
   const titleObserver = new MutationObserver(() => {
